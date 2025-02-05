@@ -1,20 +1,33 @@
 clear, clc, close all;
-addpath('Functions/')
+% Determine where your m-file's folder is.
+folder = fileparts(which('Simulation.m')); 
+% Add that folder plus all subfolders to the path.
+addpath(genpath(folder));
 %% Parameters
 N_users = 2; 
 M = 100; % Number of Rx antennas (BS)
-L = 100; % Tx length (in bits)
+L = 128; % Tx length (in bits)
+bps = 2; % 2 bits/symbol in QPSK
+L_sym = L/bps; % Tx length in syms
+N_subcarriers = 32; % Number of dft points
+
 
 %% Create bit strings
 bits = round(rand(L, N_users));
 
-%% Constellation modulation (DQPSK)
+%% Constellation modulation (QPSK)
 syms = QPSK_modulation(bits);
-tx_diff_syms = DQPSK_modulation(syms);
 
-%% Constellation demodulation (QPSK) (PROBAR GRAY CODING)
-det_diff_syms = QPSK_detector(tx_diff_syms); % Min distance detector
-det_syms = DQPSK_demodulation(det_diff_syms); % Remove differential encoding
+%% Differential OFDM encoding/modulation/carrier alocation
+% Pack symbols into N_subcarriers
+[ofdm_signal] = OFDM_diff_modulation(syms, N_subcarriers);
+
+%% Carrier modulation/demodulation
+
+
+%% Differential OFDM decoding/demodulation/carrier dealocation
+det_syms_ofdm = OFDM_diff_demodulation(ofdm_signal); 
+det_syms = det_syms_ofdm(1:L_sym, :); % Neglect zero padded symbols due to fixed N_subcarriers
 det_bits = QPSK_demodulator(det_syms); % Map symbols to bits
 
 %% Metrics (BER, SER, SINR)
