@@ -21,22 +21,7 @@ for i = 2:N_ofdm_syms + 1
 end
 
 tx_diff_syms = diff_syms;
-
-
 ofdm_signal = ifft(tx_diff_syms, N_subcarriers, 2); % OFDM modullation
 
-
-figure(1)
-subplot(1, 2, 1)
-    hold on, grid on
-    title('Constellation User 1')
-    plot(squeeze(diff_syms(2, :, 1)), 'r+', 'MarkerSize', 4, 'LineWidth', 2)
-    axis('equal')
-    
-subplot(1, 2, 2)
-    hold on, grid on
-    title('Constellation User 2')
-    plot(squeeze(diff_syms(2, :, 2)), 'r+', 'MarkerSize', 4, 'LineWidth', 2)
-    axis('equal')
 end
 

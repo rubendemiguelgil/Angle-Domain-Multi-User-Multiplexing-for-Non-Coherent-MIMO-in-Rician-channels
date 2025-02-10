@@ -14,14 +14,5 @@ rx_syms = rx_diff_syms(2:end, :, :, :).*conj(rx_diff_syms(1:end-1, :, :, :)); % 
 sum_rx_syms = 1/N_ant * sum(rx_syms, 2);
 rx_syms = reshape(sum_rx_syms, (N_ofdm_syms - 1) * N_subcarriers, N_users); % Paralel to Serial (1 less symbol due to the differential demodulation)
 
-figure(1)
-subplot(1, 2, 1)
-    plot(squeeze(rx_syms(:, 1)), 'b*', 'MarkerSize', 4, 'LineWidth', 2)
-    set(gca, 'Children', flipud(get(gca, 'Children')) )
-
-subplot(1, 2, 2)
-    plot(squeeze(rx_syms(:, 2)), 'b*', 'MarkerSize', 4, 'LineWidth', 2)
-    set(gca, 'Children', flipud(get(gca, 'Children')) )
-
 end
 

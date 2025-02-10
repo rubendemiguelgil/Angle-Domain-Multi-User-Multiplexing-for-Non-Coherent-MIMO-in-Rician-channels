@@ -4,9 +4,9 @@ folder = fileparts(which('Simulation.m'));
 % Add that folder plus all subfolders to the path.
 addpath(genpath(folder));
 %% Parameters
-N_users = 2; 
+N_users = 1; 
 M = 100; % Number of Rx antennas (BS)
-L = 1280; % Tx length (in bits)
+L = 12800; % Tx length (in bits)
 bps = 2; % 2 bits/symbol in QPSK
 L_sym = L/bps; % Tx length in syms
 N_subcarriers = 1024; % Number of dft points
@@ -29,60 +29,77 @@ d_antennas = lambda/2;
 k = 2*pi/lambda; %  Wave number
     % Rayleigh part
     N_taps = 8;
-    H_NLOS= 1/(sqrt(2)) .* (randn(M, N_taps, N_users) + 1j*randn(M, N_taps, N_users));
-    H_NLOS_freq = fft(H_NLOS, N_subcarriers, 2);
-    H_NLOS_freq = H_NLOS_freq./abs(H_NLOS_freq);
-    H_NLOS = ifft(H_NLOS_freq, N_taps, 2);
+
     % Rician part (determininstic)
-        r_cell = 500;
-        angles = [pi/4 -pi/3]; % pi * (rand(1, N_users) - 0.5); % ULA (has mirror ambiguity)
-        distances = r_cell * randn(1, N_users); % Assumed normal distribution in distance
-        init_phases = 2*pi*rand(1,N_users); 
+        angles = [pi/5];% -pi/3]; % pi * (rand(1, N_users) - 0.5); % ULA (has mirror ambiguity)
         rx_phases = repmat([0:M-1]', 1, N_users) * k*d_antennas .* repmat(sin(angles), M, 1);
-        free_space_loss = 1 * ones(size(distances)); % Same free space loss for all receiving antennas for the same user
-        H_LOS = repmat(free_space_loss, M, 1) .* exp(-j * (repmat(init_phases, M, 1) + rx_phases)); 
 
-H_LOS = cat(2, reshape(H_LOS, M, 1, N_users), zeros(M, N_taps-1, N_users)); % Extend H to the length of the OFDM signal (constant channel due to T_ofdm_sym < T_coherence)
+K = 0.5;
+H = rician_channel(angles, N_subcarriers, M, N_taps, K);
+%% SNR sweep loop
+% SNR_sweep = [0 5 10 15 20 25 30 ];
+SNR_sweep = 20;
+SER_total_mtx = zeros(size(SNR_sweep));
+BER_total_mtx = zeros(size(SNR_sweep));
+SINR_total_mtx = zeros(size(SNR_sweep));
 
-K = 0.7;
-H = (K) * H_LOS + (1-K) * H_NLOS; % Falta la K
+for SNR_idx = 1:length(SNR_sweep)
+
+SNR_dB = SNR_sweep(SNR_idx);
+N0 = (10.^(-SNR_dB/10)); % Revisar espectrograma
 
 %% Transmission (se tienen que sumar las señales)
+y = tx_ofdm_signal(ofdm_signal, H, N0);
 
-y = tx_ofdm_signal(ofdm_signal, H);
-
-%% DFT peak selection
-figure(2)
-hold on
-plot(abs(fft(squeeze(H(:, 1, :))))/max(abs(fft(squeeze(H(:, 1, :))))), 'DisplayName','Channel')
-plot(abs(fft(sum(y(2, :, 1), 4)))/max(abs(fft(sum(y(2, :, 1), 4)))), 'DisplayName','Signal')
-legend()
 %% Angular filtering (MRC) (perfect for now)
 spatial_filter = reshape(repmat(exp(-j*rx_phases), N_subcarriers, 1, 1), M, N_subcarriers, N_users); 
 spatial_filter = reshape(repelem(spatial_filter, L_ofdm_syms+1, 1, 1), L_ofdm_syms+1, M, N_subcarriers, N_users);
 
-y_mrc_angle = 1/M * fft(spatial_filter, M, 2) .* fft(y, M, 2);
-y_mrc = ifft(y_mrc_angle, M, 2);
-% y_mrc_conv = zeros(size(y_mrc))
-% for user = 1:N_users
-%     for ofdm_sym = 
-%         y_mrc_conv = conv(spatial_filter, y);
-%     end
-% end
-y_nch = y_mrc;%  squeeze(sum(y_mrc, 2));
-plot(abs(fft(spatial_filter(2, :, 1)))/max(abs(fft(spatial_filter(2, :, 1)))), 'DisplayName','Spac_filt 1')
-plot(abs(fft(spatial_filter(2, :, 2)))/max(abs(fft(spatial_filter(2, :, 2)))), 'DisplayName','Spac_filt 1')
-% figure(2)
-% hold on
-% plot(abs(squeeze(ofdm_signal(2,:,1))), 'DisplayName', 'Emitted sig')
-% % plot(abs(squeeze(y_mrc(2,1,:,1))), 'DisplayName', 'Filtered sig')
-% plot(abs(squeeze(y_nch(2, :, 1))), 'DisplayName', 'Nch Filtered sig')
-% legend()
+y_filtered_angle = 1/(M) .* fft(spatial_filter, M, 2) .* fft(y, M, 2);
+y_filtered = ifft(y_filtered_angle, M, 2);
+
+
+%% DFT peak selection
+figure(2)
+clf;
+subplot(2,1, 1)
+hold on
+plot(abs(fft(squeeze(H(:, 1, :))))/max(abs(fft(squeeze(H(:, 1, :))))), 'DisplayName','Channel')
+plot(abs(fft(sum(y(2, :, 1), 4)))/max(abs(fft(sum(y(2, :, 1), 4)))), 'DisplayName','Signal')
+plot(abs(fft(squeeze(spatial_filter(1,:,1)), M, 2)'/M), 'DisplayName','SP filter')
+legend()
+
+subplot(2,1, 2)
+hold on
+plot(abs(fft(sum(y(2, :, 1), 4)))/max(abs(fft(sum(y(2, :, 1), 4)))), 'DisplayName','OG Signal')
+plot(abs(fft(sum(y_filtered(2, :, 1), 4)))/max(abs(fft(sum(y_filtered(2, :, 1), 4)))), 'DisplayName','Filt Signal')
+legend()
 
 %% Differential OFDM decoding/demodulation/carrier dealocation
-rx_syms = OFDM_diff_demodulation(y_nch); 
-det_syms = QPSK_detector(rx_syms(1:L_sym, :)); % Min distance QPSK detection (Neglect zero padded symbols due to fixed N_subcarriers)
+rx_syms = OFDM_diff_demodulation(y_filtered); 
+rx_syms = rx_syms(1:L_sym, :);% Neglect zero padded symbols due to fixed N_subcarriers
+rx_syms = rx_syms./median(abs(rx_syms),1); % AGC (set to 1) 
+det_syms = QPSK_detector(rx_syms(1:L_sym, :)); % Min distance QPSK detection 
 det_bits = QPSK_demodulator(det_syms); % Map symbols to bits
+
+%% Constellation plot 
+figure(1)
+clf;
+subplot(1, 2, 1)
+    hold on, grid on
+    title('Constellation User 1')
+    plot(squeeze(syms(:, 1)), 'r+', 'MarkerSize', 4, 'LineWidth', 2)
+    plot(squeeze(rx_syms(:, 1)), 'b*', 'MarkerSize', 4, 'LineWidth', 2)
+    set(gca, 'Children', flipud(get(gca, 'Children')))
+    axis('equal')
+
+subplot(1, 2, 2)
+    hold on, grid on
+    title('Constellation User 2')
+    plot(squeeze(syms(:, end)), 'r+', 'MarkerSize', 4, 'LineWidth', 2)
+    plot(squeeze(rx_syms(:, end)), 'b*', 'MarkerSize', 4, 'LineWidth', 2)
+    set(gca, 'Children', flipud(get(gca, 'Children')) )
+    axis('equal')
 
 %% Metrics (BER, SER, SINR)
     % SER
@@ -92,8 +109,40 @@ det_bits = QPSK_demodulator(det_syms); % Map symbols to bits
     SER_total = sum(error_sym_flags, 'all')/(L * N_users)
     
     % BER
-    error_bits = bits - det_bits;
-    BER_user = sum(error_bits)/L;
-    BER_total = sum(error_bits, 'all')/(L * N_users)
+    error_bits = abs(bits - det_bits);
+    BER_user = abs(error_bits)/L;
+    BER_total = sum(error_bits, 'all')/(L * N_users * bps)
     
-    % SINR 
+    % SINR (from EVM) 
+    evm = sqrt(sum(abs(rx_syms - syms).^2, 'all')/(L_sym*N_users));
+    SINR_dB = 10*log10(evm)
+
+SER_total_mtx(SNR_idx) = SER_total;
+BER_total_mtx(SNR_idx) = BER_total;
+SINR_total_mtx(SNR_idx) = SINR_dB;
+end
+% 
+% figure(3)
+% % subplot(3 ,1 ,1)
+%     grid on
+%     title('BER')
+%     plot(SNR_sweep, BER_total_mtx)
+%     yscale log
+
+% subplot(3 ,1 ,2)
+%     grid on
+%     title('SER')
+%     plot(SNR_sweep, SER_total_mtx)
+%     yscale log
+% 
+% subplot(3 ,1 ,3)
+%     grid on
+%     title('SINR (10*log10(EVM)')
+%     plot(SNR_sweep, SINR_total_mtx)
+
+%  figure(1)
+%  clf
+% hold on
+% plot(squeeze(abs(ofdm_signal(2, : ,1))), 'DisplayName','Tx sig')
+% plot(squeeze(abs(y(2, 1 ,:))), 'DisplayName','Rx sig')
+% legend()
