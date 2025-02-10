@@ -1,21 +1,27 @@
-function [det_syms] = OFDM_diff_demodulation(ofdm_signal)
+function [rx_syms] = OFDM_diff_demodulation(rx_ofdm_signal)
 %OFDM_DIFF_MODULATION removes differential QPSK OFDM modulation from the input
 %OFDM signal matrix of the shape [N_ofdm_syms x N_subcarriers x N_users]. The differential encoding
 %is done between consecutive symbols in the time-frequency grid, i.e.,
 %between symbols separated N_subcarriers.
-N_ofdm_syms = size(ofdm_signal, 1);
-N_subcarriers = size(ofdm_signal, 2);
-N_users = size(ofdm_signal, 3);
+N_ofdm_syms = size(rx_ofdm_signal, 1);
+N_ant = size(rx_ofdm_signal, 2);
+N_subcarriers = size(rx_ofdm_signal, 3);
+N_users = size(rx_ofdm_signal, 4);
 
-ofdm_diff_syms = fft(ofdm_signal, N_subcarriers, 2); % OFDM demodulation
 
-det_diff_ofdm_syms = QPSK_detector(reshape(ofdm_diff_syms, N_ofdm_syms*N_subcarriers, N_users)); % Min distance QPSK detection
-det_diff_ofdm_syms = reshape(det_diff_ofdm_syms, N_ofdm_syms, N_subcarriers, N_users);
+rx_diff_syms = fft(rx_ofdm_signal, N_subcarriers, 3); % OFDM demodulation
+rx_syms = rx_diff_syms(2:end, :, :, :).*conj(rx_diff_syms(1:end-1, :, :, :)); % Differential demodulation
+sum_rx_syms = 1/N_ant * sum(rx_syms, 2);
+rx_syms = reshape(sum_rx_syms, (N_ofdm_syms - 1) * N_subcarriers, N_users); % Paralel to Serial (1 less symbol due to the differential demodulation)
 
-det_ofdm_syms = det_diff_ofdm_syms(2:end, :, :)./det_diff_ofdm_syms(1:end-1, :, :); % Differential demodulation
+figure(1)
+subplot(1, 2, 1)
+    plot(squeeze(rx_syms(:, 1)), 'b*', 'MarkerSize', 4, 'LineWidth', 2)
+    set(gca, 'Children', flipud(get(gca, 'Children')) )
 
-det_syms = reshape(det_ofdm_syms, (N_ofdm_syms - 1) * N_subcarriers, N_users); % 1 less symbol due to the differential demodulation
-
+subplot(1, 2, 2)
+    plot(squeeze(rx_syms(:, 2)), 'b*', 'MarkerSize', 4, 'LineWidth', 2)
+    set(gca, 'Children', flipud(get(gca, 'Children')) )
 
 end
 

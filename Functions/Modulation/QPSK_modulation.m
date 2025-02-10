@@ -12,7 +12,7 @@ assert(rem(L, 2) == 0, "The number of bits must be even and bigger than 2.");
 
 bits_symbol = reshape(bits, [bps, L/bps, N_users]);
 sym_idx = squeeze(bit2int(bits_symbol, 2, false)) + 1; % +1 due to Matlab's indexing
-syms = constellation(sym_idx);
+syms = reshape(constellation(sym_idx), L/bps, N_users);
 
 end
 

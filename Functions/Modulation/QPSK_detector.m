@@ -9,6 +9,6 @@ N_users = size(rx_syms, 2);
 dists = abs(repelem(rx_syms, 1, 2^bps) - repmat(constellation, N_syms, N_users));
 [~, det_sym_idx] = min(reshape(dists, N_syms, 2^bps, N_users), [], 2); 
 det_syms = constellation(squeeze(det_sym_idx));
-
+det_syms = reshape(det_syms, N_syms, N_users); % To prevent the change of symbol matrix dims
 end
 
