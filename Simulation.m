@@ -4,7 +4,7 @@ folder = fileparts(which('Simulation.m'));
 % Add that folder plus all subfolders to the path.
 addpath(genpath(folder));
 %% Parameters
-N_users = 1; 
+N_users = 2; 
 M = 100; % Number of Rx antennas (BS)
 L = 12800; % Tx length (in bits)
 bps = 2; % 2 bits/symbol in QPSK
@@ -17,25 +17,23 @@ bits = round(rand(L, N_users));
 
 %% Constellation modulation (QPSK)
 syms = QPSK_modulation(bits); 
-% pwrs = repmat([1 0.5], length(syms), 1);
-% syms = syms .* pwrs;
+
 %% Differential OFDM encoding/modulation/carrier alocation
 [ofdm_signal] = OFDM_diff_modulation(syms, N_subcarriers);
 
 %% Rician channel (for now constant)
-fc = 2e9;
-lambda = 1/fc;
-d_antennas = lambda/2;
-k = 2*pi/lambda; %  Wave number
+
+phase_dist = pi; % Assumed lambda/2 antenna separation
+
     % Rayleigh part
     N_taps = 8;
 
     % Rician part (determininstic)
-        angles = [pi/5];% -pi/3]; % pi * (rand(1, N_users) - 0.5); % ULA (has mirror ambiguity)
-        rx_phases = repmat([0:M-1]', 1, N_users) * k*d_antennas .* repmat(sin(angles), M, 1);
+        angles = [pi/3 -pi/5]; % pi * (rand(1, N_users) - 0.5); % ULA (has mirror ambiguity)
+        rx_phases = repmat([0:M-1]', 1, N_users) * phase_dist .* repmat(sin(angles), M, 1);
 
-K = 0.5;
-H = rician_channel(angles, N_subcarriers, M, N_taps, K);
+K = 10;
+H = rician_channel(angles, N_subcarriers, M, N_taps, K, phase_dist);
 %% SNR sweep loop
 % SNR_sweep = [0 5 10 15 20 25 30 ];
 SNR_sweep = 20;
@@ -52,10 +50,11 @@ N0 = (10.^(-SNR_dB/10)); % Revisar espectrograma
 y = tx_ofdm_signal(ofdm_signal, H, N0);
 
 %% Angular filtering (MRC) (perfect for now)
+spatial_filter_time = dft_peaks(y, N_users);
 spatial_filter = reshape(repmat(exp(-j*rx_phases), N_subcarriers, 1, 1), M, N_subcarriers, N_users); 
 spatial_filter = reshape(repelem(spatial_filter, L_ofdm_syms+1, 1, 1), L_ofdm_syms+1, M, N_subcarriers, N_users);
 
-y_filtered_angle = 1/(M) .* fft(spatial_filter, M, 2) .* fft(y, M, 2);
+y_filtered_angle = 1/(M) .* fft(spatial_filter_time, M, 2) .* fft(y, M, 2);
 y_filtered = ifft(y_filtered_angle, M, 2);
 
 
@@ -64,9 +63,11 @@ figure(2)
 clf;
 subplot(2,1, 1)
 hold on
-plot(abs(fft(squeeze(H(:, 1, :))))/max(abs(fft(squeeze(H(:, 1, :))))), 'DisplayName','Channel')
-plot(abs(fft(sum(y(2, :, 1), 4)))/max(abs(fft(sum(y(2, :, 1), 4)))), 'DisplayName','Signal')
-plot(abs(fft(squeeze(spatial_filter(1,:,1)), M, 2)'/M), 'DisplayName','SP filter')
+plot(abs(fft(squeeze(H(:, 1, :))))/max(abs(fft(squeeze(H(:, 1, :))))), 'DisplayName','Rice Channel angle dist')
+% plot(abs(fft(sum(y(5, :, 300), 4)))/max(abs(fft(sum(y(5, :, 300), 4)))), 'DisplayName','Signal')
+% plot(abs(fft(squeeze(spatial_filter(1,:,1))/M, M, 2)'), 'DisplayName','SP filter')
+plot(abs(fft(squeeze(spatial_filter_time(3,:,1, 1)), M, 2)'), 'DisplayName','SP filter function 1')
+plot(abs(fft(squeeze(spatial_filter_time(3,:,2, 2)), M, 2)'), 'DisplayName','SP filter function 2')
 legend()
 
 subplot(2,1, 2)

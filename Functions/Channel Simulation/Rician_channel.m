@@ -1,9 +1,8 @@
-function [H] = Rician_channel(user_angles, N_subcarriers, M, N_taps, K)
+function [H] = rician_channel(user_angles, N_subcarriers, M, N_taps, K, phase_dist_ant)
 %RICIAN_CHANNEL Summary of this function goes here
 %   Detailed explanation goes here
 
 N_users = length(user_angles);
-phase_dist = pi; % Assumed lambda/2 antenna separation
 
     % Rayleigh part
         H_NLOS= 1/(sqrt(2)) .* (randn(M, N_taps, N_users) + 1j*randn(M, N_taps, N_users));
@@ -13,7 +12,7 @@ phase_dist = pi; % Assumed lambda/2 antenna separation
 
     % Rician part (determininstic)
         init_phases = 2*pi*rand(1,N_users); 
-        rx_phases = repmat([0:M-1]', 1, N_users) * phase_dist .* repmat(sin(user_angles), M, 1);
+        rx_phases = repmat([0:M-1]', 1, N_users) * phase_dist_ant .* repmat(sin(user_angles), M, 1);
         free_space_loss = ones(size(user_angles)); % Same free space loss for all receiving antennas for the same user (No loss channel)
         H_LOS = repmat(free_space_loss, M, 1) .* exp(-j * (repmat(init_phases, M, 1) + rx_phases)); 
 

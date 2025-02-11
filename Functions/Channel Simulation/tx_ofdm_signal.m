@@ -15,7 +15,7 @@ end
 
 noise=sqrt(N0*1/(2)).*(randn(L_ofdm_syms, N_ant, N_subcarriers)+j*randn(L_ofdm_syms, N_ant, N_subcarriers)); % total noise variance is N0 per path
 
-rx_signal = ifft(rx_signal_freq, N_subcarriers, 3) + noise;
+rx_signal = ifft(rx_signal_freq, N_subcarriers, 3); % + noise;
 
 end
 
