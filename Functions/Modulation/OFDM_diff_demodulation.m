@@ -12,7 +12,14 @@ N_users = size(rx_ofdm_signal, 4);
 rx_diff_syms = fft(rx_ofdm_signal, N_subcarriers, 3); % OFDM demodulation
 rx_syms = rx_diff_syms(2:end, :, :, :).*conj(rx_diff_syms(1:end-1, :, :, :)); % Differential demodulation
 sum_rx_syms = 1/N_ant * sum(rx_syms, 2);
+% sum_rx_syms = rx_syms(:, 1, :, :);
 rx_syms = reshape(sum_rx_syms, (N_ofdm_syms - 1) * N_subcarriers, N_users); % Paralel to Serial (1 less symbol due to the differential demodulation)
 
 end
-
+% figure(1)
+% clf
+% hold on
+% for  ant = 1:40
+%     plot(squeeze(rx_syms(end, ant, :, 2)), 'DisplayName',int2str(ant))
+% end
+% legend()

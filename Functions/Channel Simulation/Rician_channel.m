@@ -18,7 +18,7 @@ N_users = length(user_angles);
 
 H_LOS = cat(2, reshape(H_LOS, M, 1, N_users), zeros(M, N_taps-1, N_users)); % Extend H to the length of the OFDM signal (constant channel due to T_ofdm_sym < T_coherence)
 
-H = sqrt(K/(K+1)) * H_LOS + sqrt(1/(K+1)) * H_NLOS; % Falta la K
+H = sqrt(K/(K+1)) * H_LOS + sqrt(1/(K+1)) * H_NLOS; 
 
 end
 

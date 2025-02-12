@@ -4,7 +4,7 @@ folder = fileparts(which('Simulation.m'));
 % Add that folder plus all subfolders to the path.
 addpath(genpath(folder));
 %% Parameters
-N_users = 2; 
+N_users = 4; 
 M = 100; % Number of Rx antennas (BS)
 L = 12800; % Tx length (in bits)
 bps = 2; % 2 bits/symbol in QPSK
@@ -22,18 +22,21 @@ syms = QPSK_modulation(bits);
 [ofdm_signal] = OFDM_diff_modulation(syms, N_subcarriers);
 
 %% Rician channel (for now constant)
-
+% Channel Parameters
 phase_dist = pi; % Assumed lambda/2 antenna separation
-
-    % Rayleigh part
-    N_taps = 8;
-
-    % Rician part (determininstic)
-        angles = [pi/3 -pi/5]; % pi * (rand(1, N_users) - 0.5); % ULA (has mirror ambiguity)
-        rx_phases = repmat([0:M-1]', 1, N_users) * phase_dist .* repmat(sin(angles), M, 1);
-
+N_taps = 8;
+angles = pi * (rand(1, N_users) - 0.5); % ULA (has mirror ambiguity)
+% angles = [-1.0487   -0.1688    1.3234   -1.1800]; % Caso de filtro espacial demasiado estrecho
+% angles =[-0.8084    1.3928   -1.0228    0.9676]; % Caso para enseñar el uso del no coherente
+rx_phases = repmat([0:M-1]', 1, N_users) * phase_dist .* repmat(sin(angles), M, 1);
 K = 10;
+
 H = rician_channel(angles, N_subcarriers, M, N_taps, K, phase_dist);
+
+H_angle = fft(H, M, 1);
+[~, user_id]= max(fft(exp(-j*rx_phases), M, 1), [], 1); % Map users for user identification 
+
+
 %% SNR sweep loop
 % SNR_sweep = [0 5 10 15 20 25 30 ];
 SNR_sweep = 20;
@@ -49,58 +52,48 @@ N0 = (10.^(-SNR_dB/10)); % Revisar espectrograma
 %% Transmission (se tienen que sumar las señales)
 y = tx_ofdm_signal(ofdm_signal, H, N0);
 
-%% Angular filtering (MRC) (perfect for now)
-spatial_filter_time = dft_peaks(y, N_users);
+%% Angular filtering (MRC?) 
+[spatial_filter_time, user_mapping] = dft_peaks(y, N_users);
+[spatial_filter_time] = user_identification(spatial_filter_time, user_id, user_mapping);
+
 spatial_filter = reshape(repmat(exp(-j*rx_phases), N_subcarriers, 1, 1), M, N_subcarriers, N_users); 
 spatial_filter = reshape(repelem(spatial_filter, L_ofdm_syms+1, 1, 1), L_ofdm_syms+1, M, N_subcarriers, N_users);
 
-y_filtered_angle = 1/(M) .* fft(spatial_filter_time, M, 2) .* fft(y, M, 2);
+y_filtered_angle =  fft(spatial_filter_time, M, 2) .* fft(y, M, 2);
 y_filtered = ifft(y_filtered_angle, M, 2);
 
 
-%% DFT peak selection
+
+%% Channel and spatial filter plotting
 figure(2)
 clf;
-subplot(2,1, 1)
 hold on
-plot(abs(fft(squeeze(H(:, 1, :))))/max(abs(fft(squeeze(H(:, 1, :))))), 'DisplayName','Rice Channel angle dist')
-% plot(abs(fft(sum(y(5, :, 300), 4)))/max(abs(fft(sum(y(5, :, 300), 4)))), 'DisplayName','Signal')
-% plot(abs(fft(squeeze(spatial_filter(1,:,1))/M, M, 2)'), 'DisplayName','SP filter')
-plot(abs(fft(squeeze(spatial_filter_time(3,:,1, 1)), M, 2)'), 'DisplayName','SP filter function 1')
-plot(abs(fft(squeeze(spatial_filter_time(3,:,2, 2)), M, 2)'), 'DisplayName','SP filter function 2')
+plot(abs(fft(squeeze(sum(H(:, 1, :), 3))))./max(abs(fft(squeeze(sum(H(:, 1, :), 3)))), [], 'all'), 'DisplayName','Rice Channel antenna domain')
+for user = 1:N_users
+    plot(abs(fft(squeeze(spatial_filter_time(3,:,1, user)), M, 2)'), 'DisplayName',['Spatial filter user ' int2str(user)], 'LineWidth', 2)
+end
 legend()
 
-subplot(2,1, 2)
-hold on
-plot(abs(fft(sum(y(2, :, 1), 4)))/max(abs(fft(sum(y(2, :, 1), 4)))), 'DisplayName','OG Signal')
-plot(abs(fft(sum(y_filtered(2, :, 1), 4)))/max(abs(fft(sum(y_filtered(2, :, 1), 4)))), 'DisplayName','Filt Signal')
-legend()
 
 %% Differential OFDM decoding/demodulation/carrier dealocation
 rx_syms = OFDM_diff_demodulation(y_filtered); 
 rx_syms = rx_syms(1:L_sym, :);% Neglect zero padded symbols due to fixed N_subcarriers
-rx_syms = rx_syms./median(abs(rx_syms),1); % AGC (set to 1) 
-det_syms = QPSK_detector(rx_syms(1:L_sym, :)); % Min distance QPSK detection 
+rx_syms_nm = rx_syms./mean(abs(rx_syms),1); % AGC (set to 1) 
+det_syms = QPSK_detector(rx_syms_nm); % Min distance QPSK detection 
 det_bits = QPSK_demodulator(det_syms); % Map symbols to bits
 
 %% Constellation plot 
 figure(1)
 clf;
-subplot(1, 2, 1)
+for user = 1:N_users
+subplot(ceil(sqrt(N_users)), ceil(sqrt(N_users)), user)
     hold on, grid on
-    title('Constellation User 1')
-    plot(squeeze(syms(:, 1)), 'r+', 'MarkerSize', 4, 'LineWidth', 2)
-    plot(squeeze(rx_syms(:, 1)), 'b*', 'MarkerSize', 4, 'LineWidth', 2)
+    title(['Constellation User ' int2str(user)])
+    plot(squeeze(syms(:, user)), 'r+', 'MarkerSize', 4, 'LineWidth', 2)
+    plot(squeeze(rx_syms_nm(:, user)), 'b*', 'MarkerSize', 4, 'LineWidth', 2)
     set(gca, 'Children', flipud(get(gca, 'Children')))
     axis('equal')
-
-subplot(1, 2, 2)
-    hold on, grid on
-    title('Constellation User 2')
-    plot(squeeze(syms(:, end)), 'r+', 'MarkerSize', 4, 'LineWidth', 2)
-    plot(squeeze(rx_syms(:, end)), 'b*', 'MarkerSize', 4, 'LineWidth', 2)
-    set(gca, 'Children', flipud(get(gca, 'Children')) )
-    axis('equal')
+end
 
 %% Metrics (BER, SER, SINR)
     % SER
@@ -111,7 +104,7 @@ subplot(1, 2, 2)
     
     % BER
     error_bits = abs(bits - det_bits);
-    BER_user = abs(error_bits)/L;
+    BER_user = sum(abs(error_bits), 1)/L;
     BER_total = sum(error_bits, 'all')/(L * N_users * bps)
     
     % SINR (from EVM) 
