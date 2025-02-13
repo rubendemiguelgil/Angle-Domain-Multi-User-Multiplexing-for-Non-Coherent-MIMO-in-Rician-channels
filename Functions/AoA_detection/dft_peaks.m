@@ -12,7 +12,7 @@ N_ant = size(rx_signal, 2);
 N_subcarriers = size(rx_signal, 3);
 
 angle_domain_signal = fft(rx_signal, N_ant, 2);
-mean_angle_domain_signal = mean(angle_domain_signal, 3);
+mean_angle_domain_signal = mean(angle_domain_signal, 3); % Averages the noise out
 
 spatial_filter_angle = zeros(L_ofdm_syms, N_ant, N_users);
 user_mapping = zeros(L_ofdm_syms, N_users);

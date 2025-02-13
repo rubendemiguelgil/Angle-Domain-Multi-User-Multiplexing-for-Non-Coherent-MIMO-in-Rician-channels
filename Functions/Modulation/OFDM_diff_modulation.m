@@ -21,7 +21,7 @@ for i = 2:N_ofdm_syms + 1
 end
 
 tx_diff_syms = diff_syms;
-ofdm_signal = ifft(tx_diff_syms, N_subcarriers, 2); % OFDM modullation
+ofdm_signal = sqrt(N_subcarriers) * ifft(tx_diff_syms, N_subcarriers, 2); % OFDM modullation (sqrt(N_subcarriers) maintains Parsevals theorem)
 
 end
 

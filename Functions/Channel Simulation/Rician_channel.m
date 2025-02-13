@@ -12,7 +12,7 @@ N_users = length(user_angles);
 
     % Rician part (determininstic)
         init_phases = 2*pi*rand(1,N_users); 
-        rx_phases = repmat([0:M-1]', 1, N_users) * phase_dist_ant .* repmat(sin(user_angles), M, 1);
+        rx_phases = repmat([0:M-1]', 1, N_users) * phase_dist_ant .* repmat(sin(user_angles), M, 1); % Assumed lambda/2 antenna spacing
         free_space_loss = ones(size(user_angles)); % Same free space loss for all receiving antennas for the same user (No loss channel)
         H_LOS = repmat(free_space_loss, M, 1) .* exp(-j * (repmat(init_phases, M, 1) + rx_phases)); 
 
