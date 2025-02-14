@@ -16,10 +16,3 @@ sum_rx_syms = 1/N_ant * sum(rx_syms, 2);
 rx_syms = reshape(sum_rx_syms, (N_ofdm_syms - 1) * N_subcarriers, N_users); % Paralel to Serial (1 less symbol due to the differential demodulation)
 
 end
-% figure(1)
-% clf
-% hold on
-% for  ant = 1:40
-%     plot(squeeze(rx_syms(end, ant, :, 2)), 'DisplayName',int2str(ant))
-% end
-% legend()
