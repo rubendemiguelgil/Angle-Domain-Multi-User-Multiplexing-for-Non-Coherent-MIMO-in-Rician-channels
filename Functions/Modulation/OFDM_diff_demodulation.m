@@ -13,6 +13,6 @@ rx_diff_syms = 1/sqrt(N_subcarriers) * fft(rx_ofdm_signal, N_subcarriers, 3); % 
 rx_syms = rx_diff_syms(2:end, :, :, :).*conj(rx_diff_syms(1:end-1, :, :, :)); % Differential demodulation
 sum_rx_syms = 1/N_ant * sum(rx_syms, 2);
 % sum_rx_syms = rx_syms(:, 1, :, :);
-rx_syms = reshape(sum_rx_syms, (N_ofdm_syms - 1) * N_subcarriers, N_users); % Paralel to Serial (1 less symbol due to the differential demodulation)
+rx_syms = reshape(permute(squeeze(sum_rx_syms), [2, 1, 3]), N_subcarriers * (N_ofdm_syms - 1), N_users);
 
 end

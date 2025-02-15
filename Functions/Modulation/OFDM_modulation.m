@@ -7,7 +7,7 @@ N_ofdm_syms = ceil(size(syms, 1)/N_subcarriers);
 
 syms_zero_padded = zeros(N_ofdm_syms*N_subcarriers,N_users);
 syms_zero_padded(1:N_syms, :) = syms; 
-ofdm_syms = reshape(syms_zero_padded, [], N_subcarriers, N_users);
+ofdm_syms = permute(reshape(syms_zero_padded(:), N_subcarriers, N_ofdm_syms, N_users), [2, 1, 3]);
 
 ofdm_signal = sqrt(N_subcarriers) * ifft(ofdm_syms, N_subcarriers, 2); % OFDM modullation (sqrt(N_subcarriers) maintains Parsevals theorem)
 

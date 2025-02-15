@@ -11,7 +11,7 @@ N_ofdm_syms = ceil(size(syms, 1)/N_subcarriers);
 
 syms_zero_padded = zeros(N_ofdm_syms*N_subcarriers,N_users);
 syms_zero_padded(1:N_syms, :) = syms; 
-ofdm_syms = reshape(syms_zero_padded, [], N_subcarriers, N_users);
+ofdm_syms = permute(reshape(syms_zero_padded(:), N_subcarriers, N_ofdm_syms, N_users), [2, 1, 3]);
 
 init_diff_symbol = ones(1, N_subcarriers, N_users);
 diff_syms = cat(1, init_diff_symbol,  zeros(N_ofdm_syms, N_subcarriers, N_users)); 

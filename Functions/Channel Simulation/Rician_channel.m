@@ -12,9 +12,9 @@ N_users = length(user_angles);
         H_NLOS = ifft(H_NLOS_freq, N_taps, 2);
 
         % Without amplitude changes (unitary channel)
-        H_NLOS_un= 1/(sqrt(2)) .* (randn(M, N_subcarriers, N_users) + 1j*randn(M, N_subcarriers, N_users));
-        H_NLOS_freq_un = fft(H_NLOS, N_subcarriers, 2);
-        H_NLOS_freq_un = H_NLOS_freq_un./abs(H_NLOS_freq_un);
+        % H_NLOS_un= 1/(sqrt(2)) .* (randn(M, N_subcarriers, N_users) + 1j*randn(M, N_subcarriers, N_users));
+        % H_NLOS_freq_un = fft(H_NLOS, N_subcarriers, 2);
+        % H_NLOS_freq_un = H_NLOS_freq_un./abs(H_NLOS_freq_un);
         H_NLOS_un = ifft(H_NLOS_freq, N_subcarriers, 2);
 
     % Rician part (determininstic)

@@ -4,9 +4,9 @@ folder = fileparts(which('NC_simulation.m'));
 % Add that folder plus all subfolders to the path.
 addpath(genpath(folder));
 %% Parameters
-N_users = 4; 
+N_users = 1; 
 M = 100; % Number of Rx antennas (BS)
-L = 12800; % Tx length (in bits)
+L = 10246; % Tx length (in bits)
 bps = 2; % 2 bits/symbol in QPSK
 L_sym = L/bps; % Tx length in syms
 N_subcarriers = 1024; % Number of dft points
@@ -19,15 +19,14 @@ bits = round(rand(L, N_users));
 syms = QPSK_modulation(bits); 
 
 %% OFDM encoding/modulation/carrier alocation
-ofdm_signal = ifft(syms, N_subcarriers, 1);
+ofdm_signal = OFDM_modulation(syms, N_subcarriers);
 
 %% Rician channel (for now constant)
 % Channel Parameters
 phase_dist = pi; % Assumed lambda/2 antenna separation
 N_taps = 8;
 angles = pi * (rand(1, N_users) - 0.5); % ULA (has mirror ambiguity)
-% angles = [-1.0487   -0.1688    1.3234   -1.1800]; % Caso de filtro espacial demasiado estrecho
-% angles =[-0.8084    1.3928   -1.0228    0.9676]; % Caso para enseñar el uso del no coherente
+% angles = [1.5249   -0.5759   -1.5297   -1.3111]; % Interferencia en coherente
 rx_phases = repmat([0:M-1]', 1, N_users) * phase_dist .* repmat(sin(angles), M, 1);
 K = 10;
 
@@ -50,24 +49,39 @@ SNR_dB = SNR_sweep(1);
 N0 = (10.^(-SNR_dB/10)); % Revisar espectrograma
 
 %% Transmission (se tienen que sumar las señales)
-y = tx_ofdm_signal(ofdm_signal, H, N0);
+y = tx_ofdm_signal(ofdm_signal, H, N0); 
 
 %% Ch estimation
-
 H_hat = H; % For now perfect channel knowledge
+
+
+%% OFDM decoding/demodulation/carrier dealocation
+y_fft = OFDM_demodulation(y);
+% y_fft = 1/sqrt(N_subcarriers) * fft(y, N_subcarriers, 3); % OFDM demodulation (maintanin Parsevals relation)
 
 %% MR combining
 
+H_hat_fft = fft(H_hat, N_subcarriers, 2);
+W = conj(H_hat_fft); 
+W_exp = permute(repmat(W, 1, 1, 1, L_ofdm_syms), [4, 1, 2, 3]);
+
+y_filtered = squeeze(sum(W_exp .* repmat(y_fft, 1, 1, 1, N_users), 2));
+
 %% ZF combining
+
 
 %% MMSE combining
 
-%% OFDM decoding/demodulation/carrier dealocation
-rx_syms = OFDM_diff_demodulation(y_filtered); 
+%% QPSK demodulation
+rx_syms = reshape(permute(y_filtered, [2, 1, 3]), N_subcarriers * L_ofdm_syms, N_users);
 rx_syms = rx_syms(1:L_sym, :);% Neglect zero padded symbols due to fixed N_subcarriers
 rx_syms_nm = rx_syms./mean(abs(rx_syms),1); % AGC (set to 1) 
+% rx_syms_nm = rx_syms;
 det_syms = QPSK_detector(rx_syms_nm); % Min distance QPSK detection 
 det_bits = QPSK_demodulator(det_syms); % Map symbols to bits
+
+%% Remove pilots from RX symbols
+
 
 %% Constellation plot 
 figure(1)
@@ -81,6 +95,14 @@ subplot(ceil(sqrt(N_users)), ceil(sqrt(N_users)), user)
     set(gca, 'Children', flipud(get(gca, 'Children')))
     axis('equal')
 end
+%% Channel and spatial filter plotting
+figure(2)
+clf;
+hold on
+plot(abs(fft(squeeze(sum(H(:, 1, :), 3))))./max(abs(fft(squeeze(sum(H(:, 1, :), 3)))), [], 'all'), 'DisplayName','Rice Channel antenna domain')
+plot(abs(fft(squeeze(y(1, :, 1))))./max(abs(fft(squeeze(y(1, :, 1)))), [], 'all'), 'DisplayName','Rx signal antenna domain')
+
+legend()
 
 %% Metrics (BER, SER, SINR)
     % SER
@@ -98,9 +120,9 @@ end
     evm = sqrt(sum(abs(rx_syms - syms).^2, 'all')/(L_sym*N_users));
     SINR_dB = 10*log10(evm)
 
-SER_total_mtx(SNR_idx) = SER_total;
-BER_total_mtx(SNR_idx) = BER_total;
-SINR_total_mtx(SNR_idx) = SINR_dB;
+% SER_total_mtx(SNR_idx) = SER_total;
+% BER_total_mtx(SNR_idx) = BER_total;
+% SINR_total_mtx(SNR_idx) = SINR_dB;
 % end
 % 
 % figure(3)
@@ -127,3 +149,21 @@ SINR_total_mtx(SNR_idx) = SINR_dB;
 % plot(squeeze(abs(ofdm_signal(2, : ,1))), 'DisplayName','Tx sig')
 % plot(squeeze(abs(y(2, 1 ,:))), 'DisplayName','Rx sig')
 % legend()
+
+%%
+% LS = [1 1e1 1e2 1e3 1e4 1e5 1e6 1e7];
+% prod = zeros(length(LS), 1);
+% 
+% for i = 1:length(LS) 
+% L = LS(i);
+% 
+% noise_1 = sqrt(1/(2)).*(randn(L, 1)+j*randn(L, 1));
+% noise_2 = sqrt(1/(2)).*(randn(L, 1)+j*randn(L, 1));
+% 
+% prod(i) = 1/L * abs(noise_1' * noise_2);
+% 
+% end
+% 
+% plot(LS, prod)
+% xscale('log')
+

@@ -4,7 +4,7 @@ folder = fileparts(which('Simulation.m'));
 % Add that folder plus all subfolders to the path.
 addpath(genpath(folder));
 %% Parameters
-N_users = 1; 
+N_users = 2; 
 M = 100; % Number of Rx antennas (BS)
 L = 12800; % Tx length (in bits)
 bps = 2; % 2 bits/symbol in QPSK
@@ -30,7 +30,7 @@ angles = pi * (rand(1, N_users) - 0.5); % ULA (has mirror ambiguity)
 % angles = [-1.0487   -0.1688    1.3234   -1.1800]; % Caso de filtro espacial demasiado estrecho
 % angles =[-0.8084    1.3928   -1.0228    0.9676]; % Caso para enseñar el uso del no coherente
 rx_phases = repmat([0:M-1]', 1, N_users) * phase_dist .* repmat(sin(angles), M, 1);
-K = 10;
+K = 1;
 
 H = rician_channel(angles, N_subcarriers, M, N_taps, K, phase_dist);
 
@@ -39,7 +39,7 @@ H_angle = fft(H, M, 1);
 
 
 %% SNR sweep loop
-% SNR_sweep = [0 5 10 15 20 25 30 ];
+SNR_sweep = [-15 -10 -5 0 5 10 15 20];
 SNR_sweep = -5;
 SER_total_mtx = zeros(size(SNR_sweep));
 BER_total_mtx = zeros(size(SNR_sweep));
@@ -70,7 +70,7 @@ figure(2)
 clf;
 hold on
 plot(abs(fft(squeeze(sum(H(:, 1, :), 3))))./max(abs(fft(squeeze(sum(H(:, 1, :), 3)))), [], 'all'), 'DisplayName','Rice Channel antenna domain')
-plot(abs(fft(squeeze(y(2, :, 1))))./max(abs(fft(squeeze(y(2, :, 1)))), [], 'all'), 'DisplayName','Rx signal')
+plot(abs(fft(squeeze(y(2, :, 1))))./max(abs(fft(squeeze(y(2, :, 1)))), [], 'all'), 'DisplayName','Rx signal antenna domain')
 for user = 1:N_users
     plot(abs(fft(squeeze(spatial_filter_time(3,:,1, user)), M, 2)'), 'DisplayName',['Spatial filter user ' int2str(user)], 'LineWidth', 2)
 end
@@ -126,13 +126,13 @@ SER_total_mtx(SNR_idx) = SER_total;
 BER_total_mtx(SNR_idx) = BER_total;
 SINR_total_mtx(SNR_idx) = SINR_dB;
 end
-% 
-% figure(3)
-% % subplot(3 ,1 ,1)
-%     grid on
-%     title('BER')
-%     plot(SNR_sweep, BER_total_mtx)
-%     yscale log
+
+figure(4)
+% subplot(3 ,1 ,1)
+    grid on
+    title('BER')
+    plot(SNR_sweep, BER_total_mtx)
+    yscale log
 
 % subplot(3 ,1 ,2)
 %     grid on
@@ -144,7 +144,7 @@ end
 %     grid on
 %     title('SINR (10*log10(EVM)')
 %     plot(SNR_sweep, SINR_total_mtx)
-
+% 
 %  figure(1)
 %  clf
 % hold on
