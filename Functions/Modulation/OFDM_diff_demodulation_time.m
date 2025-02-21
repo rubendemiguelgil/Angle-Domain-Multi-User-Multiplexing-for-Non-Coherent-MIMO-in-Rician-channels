@@ -1,4 +1,4 @@
-function [rx_syms] = OFDM_diff_demodulation(rx_ofdm_signal)
+function [rx_syms] = OFDM_diff_demodulation_time(rx_ofdm_signal)
 %OFDM_DIFF_MODULATION removes differential QPSK OFDM modulation from the input
 %OFDM signal matrix of the shape [N_ofdm_syms x N_subcarriers x N_users]. The differential encoding
 %is done between consecutive symbols in the time-frequency grid, i.e.,

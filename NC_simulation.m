@@ -7,7 +7,7 @@ addpath(genpath(folder));
 plotting = true;
 N_users = 2; 
 M = 100; % Number of Rx antennas (BS)
-L = 10240; % Tx length (in bits)
+L = 102400; % Tx length (in bits)
 bps = 2; % 2 bits/symbol in QPSK
 L_sym = L/bps; % Tx length in syms
 N_subcarriers = 1024; % Number of dft points
@@ -22,12 +22,12 @@ syms = QPSK_modulation(bits);
 % pwr = [1 1];
 % syms = syms .* repmat(pwr, L_sym, 1);
 %% Differential OFDM encoding/modulation/carrier alocation
-[ofdm_signal] = OFDM_diff_modulation(syms, N_subcarriers);
+[ofdm_signal] = OFDM_diff_modulation_freq(syms, N_subcarriers);
 
 %% Rician channel (for now constant)
 % Channel Parameters
 phase_dist = pi; % Assumed lambda/2 antenna separation
-N_taps = 8;
+N_taps = 32;
 angles = [0.5 -0.5]; % pi * (rand(1, N_users) - 0.5); % ULA (has mirror ambiguity)
 % angles = [-1.0487   -0.1688    1.3234   -1.1800]; % Caso de filtro espacial demasiado estrecho
 % angles =[-0.8084    1.3928   -1.0228    0.9676]; % Caso para enseñar el uso del no coherente
@@ -73,7 +73,7 @@ y_filtered = ifft(y_filtered_angle, M, 2);
 
 %% -- Mirar potencia de señal receptor --
 %% Differential OFDM decoding/demodulation/carrier dealocation
-rx_syms = OFDM_diff_demodulation(y_filtered); 
+rx_syms = OFDM_diff_demodulation_freq(y_filtered); 
 rx_syms = rx_syms(1:L_sym, :);% Neglect zero padded symbols due to fixed N_subcarriers
 rx_syms_nm = rx_syms./mean(abs(rx_syms),1); % AGC (set to 1) 
 det_syms = QPSK_detector(rx_syms_nm); % Min distance QPSK detection 
@@ -246,9 +246,25 @@ end
 
 %%
 
-H_fft = fft(H, 1024, 2);
-
-plot(squeeze(H_fft(:, 1, 1)), 'b*')
-
-R_time = 1/M .* squeeze(H(:, 1, :))' * squeeze(H(:, 1, :));
-R_freq = 1/M .* squeeze(H_fft(:, 1, :))' * squeeze(H_fft(:, 2, :));
+% H_fft = fft(H, 1024, 2);
+% for ant = 1:20
+%     subplot(2, 1, 1)
+%     hold on
+%     plot(abs(squeeze(H_fft(ant, :, 1))))
+% 
+%     subplot(2, 1, 2)
+%     hold on
+%     plot(unwrap(angle(squeeze(H_fft(ant, :, 1)))))
+% 
+% end
+% 
+% R_time = 1/M .* squeeze(H(:, 1, :))' * squeeze(H(:, 1, :));
+% R_freq = 1/M .* squeeze(H_fft(:, 100, :))' * squeeze(H_fft(:, 101, :));
+% 
+% 
+% H_f_diff = squeeze(H_fft(:, 382, :)) .* conj(squeeze(H_fft(:, 383, :)));
+% 
+% 1/M * sum(H_f_diff(:,1))
+% 
+% 
+% 
