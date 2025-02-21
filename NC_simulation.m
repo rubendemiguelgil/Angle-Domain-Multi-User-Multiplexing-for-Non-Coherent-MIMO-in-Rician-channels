@@ -4,10 +4,10 @@ folder = fileparts(which('NC_simulation.m'));
 % Add that folder plus all subfolders to the path.
 addpath(genpath(folder));
 %% Parameters
-plotting = false;
+plotting = true;
 N_users = 2; 
 M = 100; % Number of Rx antennas (BS)
-L = 1024000; % Tx length (in bits)
+L = 10240; % Tx length (in bits)
 bps = 2; % 2 bits/symbol in QPSK
 L_sym = L/bps; % Tx length in syms
 N_subcarriers = 1024; % Number of dft points
@@ -41,8 +41,8 @@ H_angle = fft(H, M, 1);
 
 
 %% SNR sweep loop
-SNR_sweep = -20:5;
-% SNR_sweep = 5;
+% SNR_sweep = -20:5;
+SNR_sweep = 5;
 SER_total_mtx = zeros(size(SNR_sweep));
 BER_total_mtx = zeros(size(SNR_sweep));
 SINR_total_mtx = zeros(size(SNR_sweep));
@@ -135,23 +135,23 @@ BER_total_mtx(SNR_idx) = BER_total;
 SINR_total_mtx(SNR_idx) = SINR_dB;
 end
 
-figure(4)
-% subplot(3 ,1 ,1)
-    % grid on
-    % title('BER')
-    % plot(SNR_sweep, BER_total_mtx)
-    % yscale log
-
-% subplot(3 ,1 ,2)
-%     grid on
-%     title('SER')
-%     plot(SNR_sweep, SER_total_mtx)
-%     yscale log
+% figure(4)
+% % subplot(3 ,1 ,1)
+%     % grid on
+%     % title('BER')
+%     % plot(SNR_sweep, BER_total_mtx)
+%     % yscale log
 % 
-% subplot(3 ,1 ,3)
-    grid on
-    title('SINR (10*log10(EVM)')
-    plot(SNR_sweep, SINR_total_mtx)
+% % subplot(3 ,1 ,2)
+% %     grid on
+% %     title('SER')
+% %     plot(SNR_sweep, SER_total_mtx)
+% %     yscale log
+% % 
+% % subplot(3 ,1 ,3)
+%     grid on
+%     title('SINR (10*log10(EVM)')
+%     plot(SNR_sweep, SINR_total_mtx)
 
 %  figure(1)
 %  clf
@@ -159,3 +159,96 @@ figure(4)
 % plot(squeeze(abs(ofdm_signal(2, : ,1))), 'DisplayName','Tx sig')
 % plot(squeeze(abs(y(2, 1 ,:))), 'DisplayName','Rx sig')
 % legend()
+
+
+% %%
+% clear
+% 
+% F = dftmtx(40);
+% 
+% prod = F' * F 
+% 
+
+% %% Channel shenanigans
+% clear
+% 
+% N_taps = 50;
+% decay = 0.1;
+% Ch_time = exp(-[1:N_taps]' * decay) .* 1/sqrt(2) .* (randn(N_taps, 1) + j * randn(N_taps, 1));
+% 
+% plot(abs(Ch_time))
+% 
+% %% Signal
+% N_samples_og = 100;
+% N_samples = 1024;
+% % 
+% % signal_og = 1/sqrt(2) .* (randn(N_samples_og, 1) + j * randn(N_samples_og, 1));
+% % signal = interp1([1:N_samples_og]./N_samples_og, signal_og, [1:N_samples]./N_samples, 'spline');
+% signal = exp(-j * [1:N_samples] * 2*pi/50);
+% %%
+% figure(1)
+% subplot(2, 2, 1)
+%     hold on, grid on
+%     title('Signal magnitude')
+%     plot(abs(signal))
+% 
+% subplot(2, 2, 2)
+%     hold on, grid on
+%     title('Signal phase')
+%     plot(unwrap(angle(signal)))
+% 
+% subplot(2, 2, 3)
+%     hold on, grid on
+%     title('DFt magnitude')
+%     plot(abs(fft(signal, 1024)))
+% 
+% subplot(2, 2, 4)
+%     hold on, grid on
+%     title('DFt phase')
+%     plot(unwrap(angle(fft(signal, 1024))))
+% 
+% 
+% %%
+% figure(2)
+% subplot(2, 2, 1)
+%     hold on, grid on
+%     title('Time impulse response magnitude')
+%     plot(abs(Ch_time))
+% 
+% subplot(2, 2, 2)
+%     hold on, grid on
+%     title('Time impulse response phase')
+%     plot(unwrap(angle(Ch_time)))
+% 
+% subplot(2, 2, 3)
+%     hold on, grid on
+%     title('DFt magnitude')
+%     plot(abs(fft(Ch_time, 1024)))
+% 
+% subplot(2, 2, 4)
+%     hold on, grid on
+%     title('DFt phase')
+%     plot(unwrap(angle(fft(Ch_time, 1024))))
+% 
+% %% Convolution
+% 
+% y_cconv = cconv(signal, Ch_time, N_samples);
+% y_conv = conv(signal, Ch_time, 'full');
+% 
+% y_prod = ifft(fft(signal) .* transpose(fft(Ch_time, N_samples)));
+% 
+% figure(3)
+% hold on
+% plot(real(signal), 'DisplayName','Signal')
+% plot(real(y_conv), 'DisplayName','Conv')
+% plot(real(y_prod), 'DisplayName','Prod')
+% legend()
+
+%%
+
+H_fft = fft(H, 1024, 2);
+
+plot(squeeze(H_fft(:, 1, 1)), 'b*')
+
+R_time = 1/M .* squeeze(H(:, 1, :))' * squeeze(H(:, 1, :));
+R_freq = 1/M .* squeeze(H_fft(:, 1, :))' * squeeze(H_fft(:, 2, :));
