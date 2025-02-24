@@ -7,10 +7,10 @@ addpath(genpath(folder));
 plotting = true;
 N_users = 2; 
 M = 100; % Number of Rx antennas (BS)
-L = 102400; % Tx length (in bits)
+L = 10240; % Tx length (in bits)
 bps = 2; % 2 bits/symbol in QPSK
 L_sym = L/bps; % Tx length in syms
-N_subcarriers = 1024; % Number of dft points
+N_subcarriers = 2048; % Number of dft points
 CP_length = 128; % For now didnt include it due to the narrowband assumption and the use of BER and SINR as KPIs
 L_ofdm_syms = ceil(L_sym/N_subcarriers); % Length in ofdm symbols
 
@@ -27,12 +27,12 @@ syms = QPSK_modulation(bits);
 %% Rician channel (for now constant)
 % Channel Parameters
 phase_dist = pi; % Assumed lambda/2 antenna separation
-N_taps = 32;
+N_taps = 1000;
 angles = [0.5 -0.5]; % pi * (rand(1, N_users) - 0.5); % ULA (has mirror ambiguity)
 % angles = [-1.0487   -0.1688    1.3234   -1.1800]; % Caso de filtro espacial demasiado estrecho
 % angles =[-0.8084    1.3928   -1.0228    0.9676]; % Caso para enseñar el uso del no coherente
 rx_phases = repmat([0:M-1]', 1, N_users) * phase_dist .* repmat(sin(angles), M, 1);
-K = 10;
+K = 1;
 
 H = rician_channel(angles, N_subcarriers, M, N_taps, K, phase_dist);
 
@@ -42,7 +42,7 @@ H_angle = fft(H, M, 1);
 
 %% SNR sweep loop
 % SNR_sweep = -20:5;
-SNR_sweep = 5;
+SNR_sweep = 200;
 SER_total_mtx = zeros(size(SNR_sweep));
 BER_total_mtx = zeros(size(SNR_sweep));
 SINR_total_mtx = zeros(size(SNR_sweep));
@@ -74,7 +74,7 @@ y_filtered = ifft(y_filtered_angle, M, 2);
 %% -- Mirar potencia de señal receptor --
 %% Differential OFDM decoding/demodulation/carrier dealocation
 rx_syms = OFDM_diff_demodulation_freq(y_filtered); 
-rx_syms = rx_syms(1:L_sym, :);% Neglect zero padded symbols due to fixed N_subcarriers
+rx_syms = rx_syms(1:L_sym, :); % Neglect zero padded symbols due to fixed N_subcarriers
 rx_syms_nm = rx_syms./mean(abs(rx_syms),1); % AGC (set to 1) 
 det_syms = QPSK_detector(rx_syms_nm); % Min distance QPSK detection 
 det_bits = QPSK_demodulator(det_syms); % Map symbols to bits
@@ -88,7 +88,7 @@ if plotting == true
         hold on, grid on
         title(['Constellation User ' int2str(user)])
         plot(squeeze(syms(:, user)), 'r+', 'MarkerSize', 4, 'LineWidth', 2)
-        plot(squeeze(rx_syms_nm(:, user)), 'b*', 'MarkerSize', 4, 'LineWidth', 2)
+        plot(exp(j*0.0) .* squeeze(rx_syms_nm(:, user)), 'b*', 'MarkerSize', 4, 'LineWidth', 2)
         set(gca, 'Children', flipud(get(gca, 'Children')))
         axis('equal')
     end
@@ -136,11 +136,11 @@ SINR_total_mtx(SNR_idx) = SINR_dB;
 end
 
 % figure(4)
-% % subplot(3 ,1 ,1)
-%     % grid on
-%     % title('BER')
-%     % plot(SNR_sweep, BER_total_mtx)
-%     % yscale log
+% % % subplot(3 ,1 ,1)
+%     grid on
+%     title('BER')
+%     plot(SNR_sweep, BER_total_mtx)
+%     yscale log
 % 
 % % subplot(3 ,1 ,2)
 % %     grid on
@@ -245,8 +245,8 @@ end
 % legend()
 
 %%
-
-% H_fft = fft(H, 1024, 2);
+% figure(5)
+% H_fft = fft(H, N_subcarriers, 2);
 % for ant = 1:20
 %     subplot(2, 1, 1)
 %     hold on
@@ -254,17 +254,26 @@ end
 % 
 %     subplot(2, 1, 2)
 %     hold on
-%     plot(unwrap(angle(squeeze(H_fft(ant, :, 1)))))
+%     % plot((angle(squeeze(H_fft(ant, :, 1)))))
 % 
 % end
+% 
+% subplot(2, 1, 2)
+% hold on
+% % plot(unwrap(angle(squeeze(1/M.*sum(H_fft(:, :, 1),1)))), 'LineWidth',10)
+% 
 % 
 % R_time = 1/M .* squeeze(H(:, 1, :))' * squeeze(H(:, 1, :));
 % R_freq = 1/M .* squeeze(H_fft(:, 100, :))' * squeeze(H_fft(:, 101, :));
 % 
 % 
-% H_f_diff = squeeze(H_fft(:, 382, :)) .* conj(squeeze(H_fft(:, 383, :)));
+% H_f_diff = squeeze(H_fft(:, 1:end-1, :)) .* conj(squeeze(H_fft(:, 2:end, :)));
 % 
-% 1/M * sum(H_f_diff(:,1))
+% mean_rot = angle(1/M * sum(H_f_diff));
 % 
-% 
-% 
+% for ant = 1:100
+%     subplot(2, 1, 2)
+%     hold on
+%     plot(unwrap(angle(H_f_diff(ant,:))))
+% end
+% plot(mean_rot, 'LineWidth',2)

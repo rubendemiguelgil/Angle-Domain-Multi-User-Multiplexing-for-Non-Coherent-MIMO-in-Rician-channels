@@ -7,17 +7,17 @@ function [ofdm_signal] = OFDM_diff_modulation_freq(syms, N_subcarriers)
 %channel's phase).
 N_syms = size(syms,1);
 N_users = size(syms, 2);
-N_ofdm_syms = ceil(size(syms, 1)/(N_subcarriers-1));
+N_ofdm_syms = ceil(size(syms, 1)/(N_subcarriers-2));
 
-syms_zero_padded = zeros(N_ofdm_syms*(N_subcarriers-1),N_users);
+syms_zero_padded = zeros(N_ofdm_syms*(N_subcarriers-2),N_users);
 syms_zero_padded(1:N_syms, :) = syms; 
-ofdm_syms = permute(reshape(syms_zero_padded(:), N_subcarriers-1, N_ofdm_syms, N_users), [2, 1, 3]);
+ofdm_syms = permute(reshape(syms_zero_padded(:), N_subcarriers-2, N_ofdm_syms, N_users), [2, 1, 3]);
 
-init_diff_symbol = ones(N_ofdm_syms, 1, N_users);
-diff_syms = cat(2, init_diff_symbol,  zeros(N_ofdm_syms, N_subcarriers-1, N_users)); 
+init_diff_symbols = ones(N_ofdm_syms, 2, N_users); % First symbol for channel phase, second for constellation rotation due to freq domain diff coding
+diff_syms = cat(2, init_diff_symbols,  zeros(N_ofdm_syms, N_subcarriers-2, N_users)); 
 
-for i = 2:N_subcarriers
-    diff_syms(:, i, :) = diff_syms( :, i-1, :) .* ofdm_syms( :, i-1, :); % Differential modulation
+for i = 3:N_subcarriers
+    diff_syms(:, i, :) = diff_syms( :, i-1, :) .* ofdm_syms( :, i-2, :); % Differential modulation
 end
 
 tx_diff_syms = diff_syms;
