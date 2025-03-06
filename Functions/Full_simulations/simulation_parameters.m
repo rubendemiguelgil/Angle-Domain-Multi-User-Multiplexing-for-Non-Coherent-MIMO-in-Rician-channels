@@ -19,9 +19,17 @@ function [params] = simulation_parameters()
     assert(length(params.user_angles) == params.N_users, 'There must be one angle per user.')
     assert(length(params.user_pwr) == params.N_users, 'There must be one power per user.')
 
+    % Spatial filter
+    params.width = 3;
+
     % Channel 
     params.K = 10;
     params.N_taps = 32;
+    
+    % Coherent MIMO
+    params.perfect_channel_estimation = true;
+
+end
 
 
 

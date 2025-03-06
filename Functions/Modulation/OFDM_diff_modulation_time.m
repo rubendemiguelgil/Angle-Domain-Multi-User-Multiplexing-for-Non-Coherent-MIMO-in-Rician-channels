@@ -1,4 +1,4 @@
-function [ofdm_signal] = OFDM_diff_modulation_time(syms, N_subcarriers)
+function [ofdm_signal] = OFDM_diff_modulation_time(syms, N_subcarriers, pwr)
 %OFDM_DIFF_MODULATION applies differential QPSK OFDM modulation to the input
 %symbol matrix of the shape [N_syms x N_users]. The differential encoding
 %is done between consecutive symbols in the time-frequency grid, i.e.,
@@ -20,7 +20,14 @@ for i = 2:N_ofdm_syms + 1
     diff_syms(i, :, :) = diff_syms(i-1, :, :) .* ofdm_syms(i-1, :, :); % Differential modulation
 end
 
-tx_diff_syms = diff_syms;
+if exist('pwr','var')
+    pwr_aux = zeros(1, 1, N_users);
+    pwr_aux(:, :, 1:N_users) = pwr; 
+    tx_diff_syms = diff_syms .* repmat(pwr_aux, N_ofdm_syms+1, N_subcarriers, 1);
+else
+    tx_diff_syms = diff_syms;
+end
+
 ofdm_signal = sqrt(N_subcarriers) * ifft(tx_diff_syms, N_subcarriers, 2); % OFDM modullation (sqrt(N_subcarriers) maintains Parsevals theorem)
 
 end
