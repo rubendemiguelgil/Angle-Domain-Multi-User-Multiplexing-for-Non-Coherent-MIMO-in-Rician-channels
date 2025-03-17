@@ -4,10 +4,10 @@ folder = fileparts(which('CH_simulation.m'));
 % Add that folder plus all subfolders to the path.
 addpath(genpath(folder));
 %% Parameters
-plotting = false;
+plotting = true;
 N_users = 2; 
-M = 100; % Number of Rx antennas (BS)
-L = 1024000; % Tx length (in bits)
+M = 64; % Number of Rx antennas (BS)
+L = 102400; % Tx length (in bits)
 bps = 2; % 2 bits/symbol in QPSK
 L_sym = L/bps; % Tx length in syms
 N_subcarriers = 1024; % Number of dft points
@@ -26,8 +26,8 @@ ofdm_signal = OFDM_modulation(syms, N_subcarriers);
 %% Rician channel (for now constant)
 % Channel Parameters
 phase_dist = pi; % Assumed lambda/2 antenna separation
-N_taps = 8;
-angles = [0.5 -0.5]; % pi * (rand(1, N_users) - 0.5); % ULA (has mirror ambiguity)
+N_taps = 32;
+angles = [0.1 0.2]; % pi * (rand(1, N_users) - 0.5); % ULA (has mirror ambiguity)
 % angles = [1.5249   -0.5759   -1.5297   -1.3111]; % Interferencia en coherente
 rx_phases = repmat([0:M-1]', 1, N_users) * phase_dist .* repmat(sin(angles), M, 1);
 K = 10;
@@ -39,8 +39,8 @@ H_angle = fft(H, M, 1);
 
 
 %% SNR sweep loop
-SNR_sweep = -20:5;
-% SNR_sweep = 15;
+% SNR_sweep = -20:5;
+SNR_sweep = 3;
 SER_total_mtx = zeros(size(SNR_sweep));
 BER_total_mtx = zeros(size(SNR_sweep));
 SINR_total_mtx = zeros(size(SNR_sweep));
@@ -57,23 +57,45 @@ y = tx_ofdm_signal(ofdm_signal, H, N0);
 y_fft = OFDM_demodulation(y);
 % y_fft = 1/sqrt(N_subcarriers) * fft(y, N_subcarriers, 3); % OFDM demodulation (maintanin Parsevals relation)
 
-%% MR combining (Ch estimation missing)
+%% Ch estimation (not really lol)
 H_hat = H; 
 CH_e_N0 = N0;
 CH_est_errors = sqrt(CH_e_N0/2) * (randn(size(H_hat)) + j*randn(size(H_hat)));
+H_hat_fft = fft(H_hat, N_subcarriers, 2) + CH_est_errors; 
 
-H_hat_fft = fft(H_hat, N_subcarriers, 2)+ CH_est_errors; 
-W = conj(H_hat_fft); 
-W_exp = permute(repmat(W, 1, 1, 1, L_ofdm_syms), [4, 1, 2, 3]);
+%% MR combining
+W_mrc = conj(H_hat_fft); 
+W_mrc_expanded = permute(repmat(W_mrc, 1, 1, 1, L_ofdm_syms), [4, 1, 2, 3]);
 
-y_filtered = squeeze(sum(W_exp .* repmat(y_fft, 1, 1, 1, N_users), 2));
+y_filtered = squeeze(sum(W_mrc_expanded.* repmat(y_fft, 1, 1, 1, N_users), 2));
 
 %% ZF combining
+H_fft_zf = permute(H_hat_fft, [1,3,2]); % Subcarrier dim last because it stays unaltered
+H_fft_zf_herm = permute(conj(H_hat_fft), [3,1,2]);
+
+H_sqr_inv = pageinv(pagemtimes(H_fft_zf_herm, H_fft_zf));
+W_zf = pagemtimes(H_sqr_inv, H_fft_zf_herm);
+
+y_filtered_zf = zeros(L_ofdm_syms, N_subcarriers, N_users);
+for sym = 1:L_ofdm_syms
+    y_filtered_zf(sym, :, :) = transpose(squeeze(pagemtimes(W_zf, permute(y_fft(sym, :, :), [2, 1, 3]))));
+end
 
 %% MMSE combining
+H_fft_mmse = permute(H_hat_fft, [1,3,2]); % Subcarrier dim last because it stays unaltered
+H_fft_mmse_herm = permute(conj(H_hat_fft), [3,1,2]);
+
+C_k = pagemtimes(H_fft_mmse, H_fft_mmse_herm) + N0 * eye(M);
+W_mmse = pagemtimes(pageinv(C_k), H_fft_mmse);
+W_mmse_herm = permute(conj(W_mmse), [2,1,3]);
+
+y_filtered_mmse = zeros(L_ofdm_syms, N_subcarriers, N_users);
+for sym = 1:L_ofdm_syms
+    y_filtered_mmse(sym, :, :) = transpose(squeeze(pagemtimes(W_mmse_herm, permute(y_fft(sym, :, :), [2, 1, 3]))));
+end
 
 %% QPSK demodulation
-rx_syms = reshape(permute(y_filtered, [2, 1, 3]), N_subcarriers * L_ofdm_syms, N_users);
+rx_syms = reshape(permute(y_filtered_zf, [2, 1, 3]), N_subcarriers * L_ofdm_syms, N_users);
 rx_syms = rx_syms(1:L_sym, :);% Neglect zero padded symbols due to fixed N_subcarriers
 rx_syms_nm = rx_syms./mean(abs(rx_syms),1); % AGC (set to 1) 
 % rx_syms_nm = rx_syms;
@@ -136,12 +158,12 @@ BER_total_mtx(SNR_idx) = BER_total;
 SINR_total_mtx(SNR_idx) = SINR_dB;
 end
 
-figure(4)
-% subplot(3 ,1 ,1)
-    % grid on
-    % title('BER')
-    % plot(SNR_sweep, BER_total_mtx)
-    % yscale log
+% figure(4)
+% % subplot(3 ,1 ,1)
+%     grid on
+%     title('BER')
+%     plot(SNR_sweep, BER_total_mtx)
+%     yscale log
 
 % subplot(3 ,1 ,2)
 %     grid on
@@ -150,9 +172,9 @@ figure(4)
 %     yscale log
 % 
 % subplot(3 ,1 ,3)
-    grid on
-    title('SINR (10*log10(EVM)')
-    plot(SNR_sweep, SINR_total_mtx)
+    % grid on
+    % title('SINR (10*log10(EVM)')
+    % plot(SNR_sweep, SINR_total_mtx)
 
 %  figure(1)
 %  clf

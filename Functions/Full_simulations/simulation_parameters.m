@@ -8,13 +8,14 @@ function [params] = simulation_parameters()
     params.N_subcarriers = 1024; % Number of dft points
     % params.CP_length = 128; % For now didnt include it due to the narrowband assumption and the use of BER and SINR as KPIs
     params.L_ofdm_syms = ceil(params.L_sym/params.N_subcarriers); % Length in ofdm symbols
-    params.SNR_sweep = 5; %-20:5;
+    params.SNR_sweep = -20:5;
+    params.n_channel_uses = 20;
 
     % Environment
     params.N_users = 2; 
-    params.M = 100; % Number of Rx antennas (BS)
+    params.M = 64; % Number of Rx antennas (BS)
     params.phase_dist = pi; % Assumed lambda/2 antenna separation
-    params.user_angles = [0.5 -0.5]; % pi * (rand(1, N_users) - 0.5); % ULA (has mirror ambiguity)
+    params.user_angles = [deg2rad(30) deg2rad(-30)];
     params.user_pwr = [1 1];
     assert(length(params.user_angles) == params.N_users, 'There must be one angle per user.')
     assert(length(params.user_pwr) == params.N_users, 'There must be one power per user.')
@@ -28,6 +29,10 @@ function [params] = simulation_parameters()
     
     % Coherent MIMO
     params.perfect_channel_estimation = true;
+    params.combining_method = 'MRC'; % Choose between 'MRC', 'ZF' or 'MMSE'
+
+    % Non-coherent MIMO
+    params.diff_decoding_dimension = 'time';
 
 end
 
