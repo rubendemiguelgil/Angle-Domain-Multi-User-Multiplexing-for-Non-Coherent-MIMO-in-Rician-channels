@@ -1,6 +1,6 @@
 function [results] = simulate_coherent(params)
-%SIMULATE_COHERENT Summary of this function goes here
-%   Detailed explanation goes here
+%SIMULATE_COHERENT this function simulates a coherent scheme with MRC, ZF
+%or MMSE precoding
 %% Parameters
 N_users = params.N_users; 
 M = params.M; % Number of Rx antennas (BS)
@@ -8,7 +8,6 @@ L = params.L; % Tx length (in bits)
 bps = params.bps; % 2 bits/symbol in QPSK
 L_sym = params.L_sym; % Tx length in syms
 N_subcarriers = params.N_subcarriers; % Number of dft points
-% CP_length = params.CP_length; % For now didnt include it due to the narrowband assumption and the use of BER and SINR as KPIs
 L_ofdm_syms = params.L_ofdm_syms; % Length in ofdm symbols
 pwr = params.user_pwr;
 
@@ -28,7 +27,7 @@ syms = syms .* repmat(pwr, L_sym, 1);
 %% OFDM encoding/modulation/carrier alocation
 ofdm_signal = OFDM_modulation(syms, N_subcarriers);
 
-%% Rician channel (for now constant)
+%% Rician channel 
 H = rician_channel(angles, N_subcarriers, M, N_taps, K, phase_dist);
 
 %% SNR sweep loop
@@ -41,16 +40,15 @@ for SNR_idx = 1:length(SNR_sweep)
     for ch_use = 1:n_ch_uses
              
         SNR_dB = SNR_sweep(SNR_idx);
-        N0 = (10.^(-SNR_dB/10)); % Revisar espectrograma
+        N0 = (10.^(-SNR_dB/10));
         
-        %% Transmission (se tienen que sumar las señales)
+        %% Transmission 
         y = tx_ofdm_signal(ofdm_signal, H, N0); 
         
         %% OFDM decoding/demodulation/carrier dealocation
         y_fft = OFDM_demodulation(y);
-        % y_fft = 1/sqrt(N_subcarriers) * fft(y, N_subcarriers, 3); % OFDM demodulation (maintanin Parsevals relation)
-        
-        %% Ch estimation (not really lol)
+ 
+        %% Ch estimation
         H_hat = H; 
         CH_e_N0 = N0;
         if params.perfect_channel_estimation == true
@@ -98,14 +96,11 @@ for SNR_idx = 1:length(SNR_sweep)
         %% QPSK demodulation
         rx_syms = reshape(permute(y_filtered, [2, 1, 3]), N_subcarriers * L_ofdm_syms, N_users);
         rx_syms = rx_syms(1:L_sym, :);% Neglect zero padded symbols due to fixed N_subcarriers
-        rx_syms_nm = rx_syms./mean(abs(rx_syms),1); % AGC (set to 1) 
-        % rx_syms_nm = rx_syms;
+        rx_syms_nm = rx_syms./mean(abs(rx_syms),1); 
         det_syms = QPSK_detector(rx_syms_nm); % Min distance QPSK detection 
         det_bits = QPSK_demodulator(det_syms); % Map symbols to bits
         
-        %% Remove pilots from RX symbols (when calculating throughput)
-        
-        %% Metrics (BER, SER, SINR, Throughput?)
+        %% Metrics (BER, SER, SINR)
             % SER
             error_sym = (det_syms - syms);
             error_sym_flags = (error_sym~=0);
@@ -124,10 +119,9 @@ for SNR_idx = 1:length(SNR_sweep)
             BER_total_mtx(SNR_idx, ch_use) = BER_total;
             SINR_total_mtx(SNR_idx, ch_use) = SINR_dB;
             
-            text = strcat("Ch use ", int2str(ch_use));
+            text = strcat("Ch use number: ", int2str(ch_use) ,"; SNR :", int2str(SNR_dB));
             disp(text)
     end
-    disp(int2str(SNR_dB))
 end
 
 results.SER_total_mtx = mean(SER_total_mtx, 2);

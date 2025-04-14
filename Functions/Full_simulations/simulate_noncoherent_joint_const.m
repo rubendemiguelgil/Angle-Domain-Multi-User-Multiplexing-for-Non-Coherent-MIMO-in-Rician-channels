@@ -1,6 +1,6 @@
 function [results] = simulate_noncoherent_joint_const(params)
-%SIMULATE_COHERENT Summary of this function goes here
-%   Detailed explanation goes here
+%SIMULATE_COHERENT function that simulates the non-coherent EEP constellation scheme for two
+%users or for a single user. 
 
 %% Parameters
 N_users = params.N_users; 
@@ -9,7 +9,6 @@ L = params.L; % Tx length (in bits)
 bps = params.bps; % 2 bits/symbol in QPSK
 L_sym = params.L_sym; % Tx length in syms
 N_subcarriers = params.N_subcarriers; % Number of dft points
-% CP_length = params.CP_length; % For now didnt include it due to the narrowband assumption and the use of BER and SINR as KPIs
 L_ofdm_syms = params.L_ofdm_syms; % Length in ofdm symbols
 pwr = params.user_pwr;
 width = params.width;
@@ -37,12 +36,8 @@ switch params.diff_decoding_dimension
     case 'freq'
         [ofdm_signal] = OFDM_diff_modulation_freq(syms, N_subcarriers);
 end
-%% Rician channel (for now constant)
+%% Rician channel
 H = rician_channel(angles, N_subcarriers, M, N_taps, K, phase_dist);
-
-rx_phases = repmat([0:M-1]', 1, N_users) * phase_dist .* repmat(sin(angles), M, 1);
-[~, user_id]= max(fft(exp(-j*rx_phases), M, 1), [], 1); % Map users for user identification 
-
 
 %% SNR sweep loop
 SNR_sweep = params.SNR_sweep;
@@ -54,9 +49,9 @@ for SNR_idx = 1:length(SNR_sweep)
     for ch_use = 1:n_ch_uses
         
         SNR_dB = SNR_sweep(SNR_idx);
-        N0 = (10.^(-SNR_dB/10)); % Revisar espectrograma
+        N0 = (10.^(-SNR_dB/10)); 
         
-        %% Transmission (se tienen que sumar las señales)
+        %% Transmission 
         y = tx_ofdm_signal(ofdm_signal, H, N0);
         
         %% Differential OFDM decoding/demodulation/carrier dealocation
@@ -69,7 +64,7 @@ for SNR_idx = 1:length(SNR_sweep)
         
         rx_syms = rx_syms(1:L_sym, :);% Neglect zero padded symbols due to fixed N_subcarriers
         if isequal(params.diff_decoding_dimension,'freq')
-            rx_syms_nm = rx_syms./mean(abs(rx_syms),1); % AGC (set to 1) 
+            rx_syms_nm = rx_syms./mean(abs(rx_syms),1); 
         else
             rx_syms_nm = rx_syms;
         end
@@ -112,6 +107,9 @@ for SNR_idx = 1:length(SNR_sweep)
         SER_total_mtx(SNR_idx, ch_use) = SER_total;
         BER_total_mtx(SNR_idx, ch_use) = BER_total;
         SINR_total_mtx(SNR_idx, ch_use) = SINR_dB;
+
+        text = strcat("Ch use number: ", int2str(ch_use) ,"; SNR :", int2str(SNR_dB));
+        disp(text)
     end
 end
 

@@ -1,6 +1,6 @@
 function [results] = simulate_noncoherent(params)
-%SIMULATE_COHERENT Summary of this function goes here
-%   Detailed explanation goes here
+%SIMULATE_COHERENT this function simulates the AoA based non-coherent
+%system 
 
 %% Parameters
 N_users = params.N_users; 
@@ -9,7 +9,6 @@ L = params.L; % Tx length (in bits)
 bps = params.bps; % 2 bits/symbol in QPSK
 L_sym = params.L_sym; % Tx length in syms
 N_subcarriers = params.N_subcarriers; % Number of dft points
-% CP_length = params.CP_length; % For now didnt include it due to the narrowband assumption and the use of BER and SINR as KPIs
 L_ofdm_syms = params.L_ofdm_syms; % Length in ofdm symbols
 pwr = params.user_pwr;
 width = params.width;
@@ -50,12 +49,12 @@ for SNR_idx = 1:length(SNR_sweep)
     for ch_use = 1:n_ch_uses
         
         SNR_dB = SNR_sweep(SNR_idx);
-        N0 = (10.^(-SNR_dB/10)); % Revisar espectrograma
+        N0 = (10.^(-SNR_dB/10)); 
         
         %% Transmission (se tienen que sumar las señales)
         y = tx_ofdm_signal(ofdm_signal, H, N0);
         
-        %% Angular filtering (MRC?) 
+        %% Spatial filtering 
         [spatial_filter_time, user_mapping] = dft_peaks(y, N_users, width);
         [spatial_filter_time] = user_identification(spatial_filter_time, user_id, user_mapping);
 
@@ -70,11 +69,11 @@ for SNR_idx = 1:length(SNR_sweep)
                 rx_syms = OFDM_diff_demodulation_freq(y_filtered); 
         end
         
-        rx_syms = rx_syms(1:L_sym, :);% Neglect zero padded symbols due to fixed N_subcarriers
+        rx_syms = rx_syms(1:L_sym, :); % Neglect zero padded symbols due to fixed N_subcarriers
         if isequal(params.diff_decoding_dimension,'freq')
-            rx_syms_nm = rx_syms./mean(abs(rx_syms),1); % AGC (set to 1) 
+            rx_syms_nm = rx_syms./mean(abs(rx_syms),1); 
         else
-            rx_syms_nm = rx_syms;
+            rx_syms_nm = rx_syms./mean(abs(rx_syms),1);
         end
         det_syms = QPSK_detector(rx_syms_nm); % Min distance QPSK detection 
         det_bits = QPSK_demodulator(det_syms); % Map symbols to bits
@@ -97,10 +96,9 @@ for SNR_idx = 1:length(SNR_sweep)
             BER_total_mtx(SNR_idx, ch_use) = BER_total;
             SINR_total_mtx(SNR_idx, ch_use) = SINR_dB;
             
-            text = strcat("Ch use ", int2str(ch_use));
+            text = strcat("Ch use number: ", int2str(ch_use) ,"; SNR :", int2str(SNR_dB));
             disp(text)
     end
-    disp(int2str(SNR_dB))
 end
 
 results.SER_total_mtx = mean(SER_total_mtx, 2);

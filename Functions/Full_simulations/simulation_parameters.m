@@ -2,7 +2,7 @@ function [params] = simulation_parameters()
 % Creates an object with the simulation parameters
 %% Parameters
     % Simulation
-    params.L = 10240; % Tx length (in bits)
+    params.L = 102400; % Tx length (in bits)
     params.bps = 2; % 2 bits/symbol in QPSK
     params.L_sym = params.L/params.bps; % Tx length in syms
     params.CP_length = 128; % For now didnt include it due to the narrowband assumption and the use of BER and SINR as KPIs
@@ -13,7 +13,7 @@ function [params] = simulation_parameters()
     params.n_channel_uses = 20;
 
     % Environment
-    params.N_users = 1; 
+    params.N_users = 2; 
     params.M = 64; % Number of Rx antennas (BS)
     params.phase_dist = pi; % Assumed lambda/2 antenna separation
     params.user_angles = [deg2rad(30) deg2rad(-30)];
@@ -22,7 +22,7 @@ function [params] = simulation_parameters()
     assert(length(params.user_pwr) == params.N_users, 'There must be one power per user.')
 
     % Spatial filter
-    params.width = 5;
+    params.width = 3;
 
     % Channel 
     params.K = 10;

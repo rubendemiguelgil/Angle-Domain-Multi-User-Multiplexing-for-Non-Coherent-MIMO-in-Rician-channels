@@ -1,20 +1,12 @@
 clear, clc, close all;
 
-folder = "Results\pdp_bien_high_k/";
+folder = "Results\14-Apr-2025 12_43_21/";
 
 load(folder + "params")
-
-load(folder + "results_nch_leg_single_user")
-NC_SER_leg  = results_nch_leg_single_user.SER_total_mtx;
-NC_SINR_leg = results_nch_leg_single_user.SINR_total_mtx;
 
 load(folder + "results_nch_eep")
 NC_SER_eep  = results_nch_eep.SER_total_mtx;
 NC_SINR_eep = results_nch_eep.SINR_total_mtx;
-
-% load(folder + "results_nch_time")
-% NC_SER_time  = results_nch_time.SER_total_mtx;
-% NC_SINR_time = results_nch_time.SINR_total_mtx;
 
 load(folder + "results_nch_freq")
 NC_SER_freq  = results_nch_freq.SER_total_mtx;
@@ -92,9 +84,9 @@ figure(2)
 
     %% Plot antenna scaling
     clear, close all;
-    results_folder = "Results\def_antenna_scaling/";
-    load(results_folder + "workspace_long_sim")
-    load(results_folder + "workspace_mmse_scaling")
+    results_folder = "Results\antenna_scaling/";
+    load(results_folder + "workspace")
+
     SNR_sweep = params.SNR_sweep;
 
     figure(1)
@@ -104,9 +96,7 @@ figure(2)
     for i = 1:length(N_ant_array)-1
 
         plot(SNR_sweep, SER_ant_scaling_nch_freq(i,:), '-ksquare')
-        % plot(N_ant_array, SER_ant_scaling_leg_single_user, '-.^', 'DisplayName','Non-coherent single user from [4]')
-        % plot(N_ant_array, SER_ant_scaling_nch_eep, '-.x', 'DisplayName','Non-coherent EEP from [5]')
-        % plot(SNR_sweep, SER_ant_scaling_perfect_mmse(i,:), '-.x', 'DisplayName',['Perf MMSE ' int2str(N_ant_array(i)) ' antennas'])
+        % plot(SNR_sweep, SER_ant_scaling_perfect_mmse(i,:), '-.bx')
         plot(SNR_sweep, SER_ant_scaling_imperfect_mmse(i,:), '-.r^')
   
     end
@@ -114,7 +104,6 @@ figure(2)
     legend_mmse = ['MMSE with channel errors'];
     legend_labels = {'\textbf{Non-coherent scheme}', '\textbf{MMSE with channel errors}'};
     l= legend(legend_nch, legend_mmse, 'Interpreter','latex', 'location','southwest');
-    % text(-20, 10e-6, legend_mmse, 'Color', 'red', 'Interpreter','latex')
 
     labels = {'\textbf{M=50}' '\textbf{M=100}' '\textbf{M=200}' '\textbf{M=400}'};
     x_nch = [-2.8 -5.5 -8.2 -12];
@@ -128,19 +117,18 @@ figure(2)
     set(gca,'TickLabelInterpreter','latex')
     set(findall(gcf,'-property','FontSize'),'FontSize',12.5)
     xlim([-20 2])
-    % 
-    % figure(2)
-    % hold on, grid on
-    % xlabel('SNR (dB)','Interpreter','latex');
-    % ylabel('SINR (dB)','Interpreter','latex');
-    % for i = 1:length(N_ant_array)-1
-    %     plot(SNR_sweep, SINR_ant_scaling_nch_freq(i, :), '-.square', 'DisplayName',['Proposed non-coherent ' int2str(N_ant_array(i)) ' antennas'])
-    %     % plot(N_ant_array, SINR_ant_scaling_leg_single_user, '-^', 'DisplayName','Non-coherent single user from [4]')
-    %     % plot(N_ant_array, SINR_ant_scaling_nch_eep, '-.x', 'DisplayName','Non-coherent EEP from [5]')
-    %     % plot(SNR_sweep, SINR_ant_scaling_perfect_mmse(i, :), '-.x', 'DisplayName',['Perf MMSE ' int2str(N_ant_array(i)) ' antennas'])
-    %     plot(SNR_sweep, SINR_ant_scaling_imperfect_mmse(i, :), '-.^', 'DisplayName',['Imperf MMSE ' int2str(N_ant_array(i)) ' antennas'])
-    % end
-    % legend('Interpreter','latex', 'location','northeast');
-    % set(gca,'TickLabelInterpreter','latex')
-    % set(findall(gcf,'-property','FontSize'),'FontSize',12.5)
-    % box on;
+
+    figure(2)
+    hold on, grid on
+    xlabel('SNR (dB)','Interpreter','latex');
+    ylabel('SINR (dB)','Interpreter','latex');
+    for i = 1:length(N_ant_array)-1
+        plot(SNR_sweep, SINR_ant_scaling_nch_freq(i, :), '-.ksquare')
+        plot(SNR_sweep, SINR_ant_scaling_perfect_mmse(i, :), '-.bx')
+        plot(SNR_sweep, SINR_ant_scaling_imperfect_mmse(i, :), '-.r^')
+    end
+    l= legend(legend_nch, legend_mmse, 'Interpreter','latex', 'location','southwest');
+
+    set(gca,'TickLabelInterpreter','latex')
+    set(findall(gcf,'-property','FontSize'),'FontSize',12.5)
+    box on;
