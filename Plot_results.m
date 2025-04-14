@@ -1,6 +1,6 @@
 clear, clc, close all;
 
-folder = "Results\14-Apr-2025 12_43_21/";
+folder = "Results\subfolder_name_here\";
 
 load(folder + "params")
 
