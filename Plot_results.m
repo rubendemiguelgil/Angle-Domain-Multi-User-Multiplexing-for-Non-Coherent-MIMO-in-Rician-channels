@@ -36,7 +36,6 @@ load(folder + "results_mmse_imperf.mat")
 CH_SER_mmse_imperf  = results_ch_imperfect_mmse.SER_total_mtx;
 CH_SINR_mmse_imperf = results_ch_imperfect_mmse.SINR_total_mtx;
 
-%%
 SNR_sweep = params.SNR_sweep;
 
 close all
