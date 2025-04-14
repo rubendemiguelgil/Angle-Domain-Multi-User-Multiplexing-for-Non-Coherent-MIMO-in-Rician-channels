@@ -21,7 +21,9 @@ for sym_idx = 1:L_ofdm_syms
     [~,locs] = findpeaks(abs(mean_angle_domain_signal(sym_idx, :)), 'SortStr','descend');
     for user = 1:N_users
         % CIRCSHIFT to allow the filter to go to the borders
-        spatial_filter_angle(sym_idx, locs(user)-half_wdth:locs(user)+half_wdth, user) = 1;
+        indexes = locs(user)-half_wdth:locs(user)+half_wdth; 
+        indexes_mod = mod(indexes - 1 + N_ant, N_ant) + 1;
+        spatial_filter_angle(sym_idx, indexes_mod, user) = 1;
         user_mapping(sym_idx, user) = locs(user);
     end
 end

@@ -1,4 +1,4 @@
-function [results] = simulate_noncoherent(params)
+function [results] = simulate_noncoherent_joint_const(params)
 %SIMULATE_COHERENT Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -24,7 +24,11 @@ bits = round(rand(L, N_users));
 
 %% Constellation modulation (QPSK)
 syms = QPSK_modulation(bits); 
-syms = syms .* repmat(pwr, L_sym, 1);
+if N_users == 2
+    syms(:,2) = syms(:,2) * exp(j* pi/4); 
+    pwr = [1 1];
+    joint_syms = sum(syms, 2);
+end
 
 %% Differential OFDM encoding/modulation/carrier alocation
 switch params.diff_decoding_dimension
@@ -55,19 +59,12 @@ for SNR_idx = 1:length(SNR_sweep)
         %% Transmission (se tienen que sumar las señales)
         y = tx_ofdm_signal(ofdm_signal, H, N0);
         
-        %% Angular filtering (MRC?) 
-        [spatial_filter_time, user_mapping] = dft_peaks(y, N_users, width);
-        [spatial_filter_time] = user_identification(spatial_filter_time, user_id, user_mapping);
-
-        y_filtered_angle =  fft(spatial_filter_time, M, 2) .* fft(y, M, 2);
-        y_filtered = ifft(y_filtered_angle, M, 2);
-        
         %% Differential OFDM decoding/demodulation/carrier dealocation
         switch params.diff_decoding_dimension
             case 'time'
-                rx_syms = OFDM_diff_demodulation_time(y_filtered); 
+                rx_syms = OFDM_diff_demodulation_time(y); 
             case 'freq'
-                rx_syms = OFDM_diff_demodulation_freq(y_filtered); 
+                rx_syms = OFDM_diff_demodulation_freq(y); 
         end
         
         rx_syms = rx_syms(1:L_sym, :);% Neglect zero padded symbols due to fixed N_subcarriers
@@ -76,31 +73,46 @@ for SNR_idx = 1:length(SNR_sweep)
         else
             rx_syms_nm = rx_syms;
         end
-        det_syms = QPSK_detector(rx_syms_nm); % Min distance QPSK detection 
-        det_bits = QPSK_demodulator(det_syms); % Map symbols to bits
-        
-        %% Metrics (BER, SER, SINR)
+
+        if N_users == 1
+            det_syms = QPSK_detector(rx_syms_nm); % Min distance QPSK detection 
+            det_bits = QPSK_demodulator(det_syms); % Map symbols to bits
+            
             % SER
             error_sym = (det_syms - syms);
             error_sym_flags = (error_sym~=0);
-            SER_total = sum(error_sym_flags, 'all')/(L_sym * N_users);
-            
-            % BER
-            error_bits = abs(bits - det_bits);
-            BER_total = sum(error_bits, 'all')/(L * N_users);
+            SER_total = sum(error_sym_flags, 'all')/(L * N_users);
             
             % SINR (from EVM) 
             evm = sqrt(sum(abs(rx_syms_nm - syms).^2, 'all')/(L_sym*N_users));
             SINR_dB = -10*log10(evm);
 
-            SER_total_mtx(SNR_idx, ch_use) = SER_total;
-            BER_total_mtx(SNR_idx, ch_use) = BER_total;
-            SINR_total_mtx(SNR_idx, ch_use) = SINR_dB;
+        elseif N_users == 2
+            [det_bits, det_joint_syms] = joint_const_detection(rx_syms_nm); % Joint constellation
+            % Metrics
+            % SER Joint
+            error_sym = (transpose(det_joint_syms) - joint_syms);
+            error_sym_flags = (abs(error_sym)>0.1);
+            SER_user = sum(error_sym_flags, 1)/L;
+            SER_total = sum(error_sym_flags, 'all')/(length(joint_syms));
+    
+            % SINR Joint (from EVM) 
+            evm = sqrt(sum(abs(rx_syms_nm - joint_syms).^2, 'all')/(L_sym*N_users));
+            SINR_dB = -10*log10(evm);
+
+        else
+            assert(N_users < 3, 'Number of users must be 1 or 2 for the legacy NCH.')
+        end
+
             
-            text = strcat("Ch use ", int2str(ch_use));
-            disp(text)
+        % BER
+        error_bits = abs(bits - det_bits);
+        BER_total = sum(error_bits, 'all')/(L * N_users);
+            
+        SER_total_mtx(SNR_idx, ch_use) = SER_total;
+        BER_total_mtx(SNR_idx, ch_use) = BER_total;
+        SINR_total_mtx(SNR_idx, ch_use) = SINR_dB;
     end
-    disp(int2str(SNR_dB))
 end
 
 results.SER_total_mtx = mean(SER_total_mtx, 2);

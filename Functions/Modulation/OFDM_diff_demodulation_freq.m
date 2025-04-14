@@ -10,8 +10,11 @@ N_users = size(rx_ofdm_signal, 4);
 
 
 rx_diff_syms = 1/sqrt(N_subcarriers) * fft(rx_ofdm_signal, N_subcarriers, 3); % OFDM demodulation (maintanin Parsevals relation)
+% rx_diff_syms_nm = rx_diff_syms ./ abs(rx_diff_syms);
+% rx_syms = rx_diff_syms_nm(:, :, 2:end, :).*conj(rx_diff_syms_nm(:, :, 1:end-1, :)); % Differential demodulation
 rx_syms = rx_diff_syms(:, :, 2:end, :).*conj(rx_diff_syms(:, :, 1:end-1, :)); % Differential demodulation
 sum_rx_syms = 1/N_ant * squeeze(sum(rx_syms, 2));
+% sum_rx_syms = squeeze(rx_syms(:, 1, :, :)); % Only result of first antenna turn off averaging
 mean_rotation = angle(sum_rx_syms(:, 1, :));
 rot_symbols = exp(-j * mean_rotation) .* sum_rx_syms(:, 2:end, :); % Compensate constellation rotation due to freq domain mod
 rx_syms = reshape(permute(rot_symbols, [2, 1, 3]), (N_subcarriers-2) * N_ofdm_syms, N_users);

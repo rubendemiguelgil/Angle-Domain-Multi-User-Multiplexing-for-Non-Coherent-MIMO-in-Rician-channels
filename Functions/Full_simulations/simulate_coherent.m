@@ -109,21 +109,25 @@ for SNR_idx = 1:length(SNR_sweep)
             % SER
             error_sym = (det_syms - syms);
             error_sym_flags = (error_sym~=0);
-            SER_total = sum(error_sym_flags, 'all')/(L * N_users);
+            SER_total = sum(error_sym_flags, 'all')/(L_sym * N_users);
             
             % BER
             error_bits = abs(bits - det_bits);
-            BER_total = sum(error_bits, 'all')/(L * N_users * bps);
+            BER_total = sum(error_bits, 'all')/(L * N_users);
             
             % SINR (from EVM) 
             evm = sqrt(sum(abs(rx_syms_nm - syms).^2, 'all')/(L_sym*N_users));
-            SINR_dB = 10*log10(evm);
+            SINR_dB = -10*log10(evm);
            
         
             SER_total_mtx(SNR_idx, ch_use) = SER_total;
             BER_total_mtx(SNR_idx, ch_use) = BER_total;
             SINR_total_mtx(SNR_idx, ch_use) = SINR_dB;
+            
+            text = strcat("Ch use ", int2str(ch_use));
+            disp(text)
     end
+    disp(int2str(SNR_dB))
 end
 
 results.SER_total_mtx = mean(SER_total_mtx, 2);

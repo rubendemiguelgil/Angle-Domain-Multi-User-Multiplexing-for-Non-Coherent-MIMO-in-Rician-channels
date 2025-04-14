@@ -4,12 +4,16 @@ function [H] = rician_channel(user_angles, N_subcarriers, M, N_taps, K, phase_di
 
 N_users = length(user_angles);
 
-    % Rayleigh part
         % With amplitude changes
-        H_NLOS= 1/(sqrt(2)) .* (randn(M, N_taps, N_users) + 1j*randn(M, N_taps, N_users));
+        % Rayleigh distributed PDPs
+        decay = 1e-1;
+        decrease = exp(-[0:N_taps-1]* decay);
+        decrease_mat = repmat(decrease, M, 1, N_users);
+        H_NLOS= 1/(sqrt(2)) .* decrease_mat .* (randn(M, N_taps, N_users) + 1j*randn(M, N_taps, N_users));
+        H_NLOS = sqrt(H_NLOS.^2 ./sum(abs(H_NLOS).^2, 2)); % normalize PDP power
         H_NLOS_freq = fft(H_NLOS, N_subcarriers, 2);
-        H_NLOS_freq = H_NLOS_freq./abs(H_NLOS_freq);
-        H_NLOS = ifft(H_NLOS_freq, N_taps, 2);
+        % H_NLOS_freq = H_NLOS_freq./abs(H_NLOS_freq);
+        % H_NLOS = ifft(H_NLOS_freq, N_subcarriers, 2);
 
         % Without amplitude changes (unitary channel)
         % H_NLOS_un= 1/(sqrt(2)) .* (randn(M, N_subcarriers, N_users) + 1j*randn(M, N_subcarriers, N_users));

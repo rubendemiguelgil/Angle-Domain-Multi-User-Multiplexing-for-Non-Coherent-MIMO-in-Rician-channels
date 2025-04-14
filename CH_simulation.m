@@ -6,8 +6,8 @@ addpath(genpath(folder));
 %% Parameters
 plotting = true;
 N_users = 2; 
-M = 64; % Number of Rx antennas (BS)
-L = 102400; % Tx length (in bits)
+M = 100; % Number of Rx antennas (BS)
+L = 10240; % Tx length (in bits)
 bps = 2; % 2 bits/symbol in QPSK
 L_sym = L/bps; % Tx length in syms
 N_subcarriers = 1024; % Number of dft points
@@ -27,7 +27,7 @@ ofdm_signal = OFDM_modulation(syms, N_subcarriers);
 % Channel Parameters
 phase_dist = pi; % Assumed lambda/2 antenna separation
 N_taps = 32;
-angles = [0.1 0.2]; % pi * (rand(1, N_users) - 0.5); % ULA (has mirror ambiguity)
+angles = [deg2rad(32) deg2rad(-30)]; % pi * (rand(1, N_users) - 0.5); % ULA (has mirror ambiguity)
 % angles = [1.5249   -0.5759   -1.5297   -1.3111]; % Interferencia en coherente
 rx_phases = repmat([0:M-1]', 1, N_users) * phase_dist .* repmat(sin(angles), M, 1);
 K = 10;
@@ -40,7 +40,7 @@ H_angle = fft(H, M, 1);
 
 %% SNR sweep loop
 % SNR_sweep = -20:5;
-SNR_sweep = 3;
+SNR_sweep = 20;
 SER_total_mtx = zeros(size(SNR_sweep));
 BER_total_mtx = zeros(size(SNR_sweep));
 SINR_total_mtx = zeros(size(SNR_sweep));
@@ -141,12 +141,12 @@ end
     error_sym = (det_syms - syms);
     error_sym_flags = (error_sym~=0);
     SER_user = sum(error_sym_flags, 1)/L;
-    SER_total = sum(error_sym_flags, 'all')/(L * N_users)
+    SER_total = sum(error_sym_flags, 'all')/(L_sym * N_users)
     
     % BER
     error_bits = abs(bits - det_bits);
     BER_user = sum(abs(error_bits), 1)/L;
-    BER_total = sum(error_bits, 'all')/(L * N_users * bps)
+    BER_total = sum(error_bits, 'all')/(L * N_users)
     
     % SINR (from EVM) 
     evm = sqrt(sum(abs(rx_syms_nm - syms).^2, 'all')/(L_sym*N_users));
