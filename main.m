@@ -1,6 +1,6 @@
 clear, clc, close all;
 % Determine where your m-file's folder is.
-folder = fileparts(which('NC_simulation.m')); 
+folder = fileparts(which('main.m')); 
 % Add that folder plus all subfolders to the path.
 addpath(genpath(folder));
 
