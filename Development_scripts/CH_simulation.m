@@ -41,7 +41,7 @@ H_angle = fft(H, M, 1);
 
 %% SNR sweep loop
 % SNR_sweep = -20:5;
-SNR_sweep = 0;
+SNR_sweep = 15;
 SER_total_mtx = zeros(size(SNR_sweep));
 BER_total_mtx = zeros(size(SNR_sweep));
 SINR_total_mtx = zeros(size(SNR_sweep));
@@ -95,10 +95,10 @@ for sym = 1:L_ofdm_syms
 end
 
 %% QPSK demodulation
-rx_syms = reshape(permute(y_filtered_zf, [2, 1, 3]), N_subcarriers * L_ofdm_syms, N_users);
+rx_syms = reshape(permute(y_filtered_mmse, [2, 1, 3]), N_subcarriers * L_ofdm_syms, N_users);
 rx_syms = rx_syms(1:L_sym, :);% Neglect zero padded symbols due to fixed N_subcarriers
-rx_syms_nm = rx_syms./mean(abs(rx_syms),1); % AGC (set to 1) 
-% rx_syms_nm = rx_syms;
+% rx_syms_nm = rx_syms./mean(abs(rx_syms),1); % AGC (set to 1) 
+rx_syms_nm = rx_syms;
 det_syms = QPSK_detector(rx_syms_nm); % Min distance QPSK detection 
 det_bits = QPSK_demodulator(det_syms); % Map symbols to bits
 

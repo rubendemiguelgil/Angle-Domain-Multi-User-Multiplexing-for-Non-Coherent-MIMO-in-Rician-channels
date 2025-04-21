@@ -22,29 +22,29 @@ results_nch_freq = simulate_noncoherent(params)
 save([results_dir '/results_nch_freq'], "results_nch_freq")
 disp('Nch freq done')
 
-% MRC
-params.combining_method = 'MRC';
-params.perfect_channel_estimation = true;
-results_ch_perfect_mrc = simulate_coherent(params)
-save([results_dir '/results_mrc_perf'], "results_ch_perfect_mrc")
-disp('MRC perf done')
-
-params.perfect_channel_estimation = false;
-results_ch_imperfect_mrc = simulate_coherent(params)
-save([results_dir '/results_mrc_imperf'], "results_ch_imperfect_mrc")
-disp('MRC imperf done')
-
-% ZF
-params.combining_method = 'ZF';
-params.perfect_channel_estimation = true;
-results_ch_perfect_zf = simulate_coherent(params)
-save([results_dir '/results_zf_perf'], "results_ch_perfect_zf")
-disp('ZF perf done')
-
-params.perfect_channel_estimation = false;
-results_ch_imperfect_zf = simulate_coherent(params)
-save([results_dir '/results_zf_imperf'], "results_ch_imperfect_zf")
-disp('ZF imperf done')
+% % MRC
+% params.combining_method = 'MRC';
+% params.perfect_channel_estimation = true;
+% results_ch_perfect_mrc = simulate_coherent(params)
+% save([results_dir '/results_mrc_perf'], "results_ch_perfect_mrc")
+% disp('MRC perf done')
+% 
+% params.perfect_channel_estimation = false;
+% results_ch_imperfect_mrc = simulate_coherent(params)
+% save([results_dir '/results_mrc_imperf'], "results_ch_imperfect_mrc")
+% disp('MRC imperf done')
+% 
+% % ZF
+% params.combining_method = 'ZF';
+% params.perfect_channel_estimation = true;
+% results_ch_perfect_zf = simulate_coherent(params)
+% save([results_dir '/results_zf_perf'], "results_ch_perfect_zf")
+% disp('ZF perf done')
+% 
+% params.perfect_channel_estimation = false;
+% results_ch_imperfect_zf = simulate_coherent(params)
+% save([results_dir '/results_zf_imperf'], "results_ch_imperfect_zf")
+% disp('ZF imperf done')
 
 % MMSE
 params.combining_method = 'MMSE';

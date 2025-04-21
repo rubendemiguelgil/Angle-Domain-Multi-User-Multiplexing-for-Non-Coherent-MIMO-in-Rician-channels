@@ -8,7 +8,7 @@ addpath(genpath(folder));
 %% Parameters
 plotting = true;
 N_users = 2; 
-M = 100; % Number of Rx antennas (BS)
+M = 64; % Number of Rx antennas (BS)
 L = 10240; % Tx length (in bits)
 bps = 2; % 2 bits/symbol in QPSK
 L_sym = L/bps; % Tx length in syms
@@ -45,7 +45,7 @@ H_angle = fft(H, M, 1);
 
 %% SNR sweep loop
 % SNR_sweep = -20:5;
-SNR_sweep = 0;
+SNR_sweep = 15;
 SER_total_mtx = zeros(length(SNR_sweep), n_ch_uses);
 BER_total_mtx = zeros(length(SNR_sweep), n_ch_uses);
 SINR_total_mtx = zeros(length(SNR_sweep), n_ch_uses);
@@ -60,8 +60,8 @@ for SNR_idx = 1:length(SNR_sweep)
     %% Transmission (se tienen que sumar las señales)
     [y, noise] = tx_ofdm_signal(ofdm_signal, H, N0);
     
-    %% Angular filtering (MRC?) 
-    [spatial_filter_time, user_mapping] = dft_peaks(y, N_users, 5);
+    %% Angular filtering
+    [spatial_filter_time, user_mapping] = dft_peaks(y, N_users, 30);
     [spatial_filter_time] = user_identification(spatial_filter_time, user_id, user_mapping);
     
     y_filtered_angle =  fft(spatial_filter_time, M, 2) .* fft(y, M, 2);
@@ -76,8 +76,8 @@ for SNR_idx = 1:length(SNR_sweep)
     %% Differential OFDM decoding/demodulation/carrier dealocation
     rx_syms = OFDM_diff_demodulation_freq(y_filtered); 
     rx_syms = rx_syms(1:L_sym, :); % Neglect zero padded symbols due to fixed N_subcarriers
-    rx_syms_nm = rx_syms./mean(abs(rx_syms),1); % to show scale 1 constellation plots (does not affect the SER due to the use of QPSK) 
-    % rx_syms_nm = rx_syms;
+    % rx_syms_nm = rx_syms./mean(abs(rx_syms),1); % to show scale 1 constellation plots (does not affect the SER due to the use of QPSK) 
+    rx_syms_nm = rx_syms;
     det_syms = QPSK_detector(rx_syms_nm); % Min distance QPSK detection 
     det_bits = QPSK_demodulator(det_syms); % Map symbols to bits
     % [det_bits, det_joint_syms] = joint_const_detection(rx_syms_nm); % Joint constellation
@@ -133,9 +133,10 @@ for SNR_idx = 1:length(SNR_sweep)
         BER_total = sum(error_bits, 'all')/(L * N_users)
         
         % SINR (from EVM) 
-        evm = sqrt(sum(abs(rx_syms_nm - syms).^2, 'all')/(L_sym*N_users));
+        evm = (sum(abs(rx_syms_nm - syms).^2, 'all')/(L_sym*N_users));
         SINR_dB = -10*log10(evm)
-    
+        sinr_test = var(rx_syms_nm - syms, 1, "all");
+        sinr_test_db = -10*log10(sinr_test)
         % % SER Joint
         % error_sym = (transpose(det_joint_syms) - joint_syms);
         % error_sym_flags = (abs(error_sym)>0.1);
@@ -182,3 +183,35 @@ end
 % plot(squeeze(abs(y(2, 1 ,:))), 'DisplayName','Rx sig')
 % legend()
 % 
+
+%%
+
+% H_NLOS_pdp= 1/(sqrt(2)) .* (randn(M, N_taps, N_users) + 1j*randn(M, N_taps, N_users));
+% % H_NLOS_nm = sqrt(H_NLOS_pdp.^2 ./sum(abs(H_NLOS_pdp).^2, 2)); % normalize PDP power
+% H_NLOS_freq = fft(H_NLOS_pdp, N_subcarriers, 2);
+% H_NLOS = ifft(H_NLOS_freq, N_subcarriers, 2);
+% 
+% 
+% H_freq =  fft(H_NLOS, N_subcarriers, 2);
+% H_filtered_u_1_angle = fft(squeeze(spatial_filter_time(1,:,:,1)), M, 1) .* fft(H_freq, M, 1);
+% H_filtered_u_1 =  ifft(H_filtered_u_1_angle, M, 1);
+% H_filtered_u_1_freq =  fft(H_filtered_u_1, N_subcarriers, 2);
+% 
+% var_filt = var(H_filtered_u_1_freq(:, 10, 2))
+% var_og = var(H_freq(:, 10, 2));
+% 
+% % real_product = mean(conj(H_filtered_u_1_freq(:, 10, 2)).*H_filtered_u_1_freq(:,11, 2)) 
+% 
+% 
+% 
+% figure(8)
+% hold on
+% plot(real(H_filtered_u_1_freq(: ,10, 2)))
+% plot(real(H_filtered_u_1_freq(: ,11, 2)))
+% 
+% figure(9)
+% hold on
+% plot(real(H_freq(: ,10, 2)))
+% plot(real(H_freq(: ,11, 2)))
+% 
+% var_og/var_filt

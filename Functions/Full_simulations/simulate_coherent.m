@@ -95,9 +95,9 @@ for SNR_idx = 1:length(SNR_sweep)
         end
         %% QPSK demodulation
         rx_syms = reshape(permute(y_filtered, [2, 1, 3]), N_subcarriers * L_ofdm_syms, N_users);
-        rx_syms = rx_syms(1:L_sym, :);% Neglect zero padded symbols due to fixed N_subcarriers
-        rx_syms_nm = rx_syms./mean(abs(rx_syms),1); 
-        det_syms = QPSK_detector(rx_syms_nm); % Min distance QPSK detection 
+        rx_syms = rx_syms(1:L_sym, :);% Neglect zero padded symbols due to fixed N_subcarriers 
+
+        det_syms = QPSK_detector(rx_syms); % Min distance QPSK detection 
         det_bits = QPSK_demodulator(det_syms); % Map symbols to bits
         
         %% Metrics (BER, SER, SINR)
@@ -111,7 +111,7 @@ for SNR_idx = 1:length(SNR_sweep)
             BER_total = sum(error_bits, 'all')/(L * N_users);
             
             % SINR (from EVM) 
-            evm = sqrt(sum(abs(rx_syms_nm - syms).^2, 'all')/(L_sym*N_users));
+            evm = (sum(abs(rx_syms - syms).^2, 'all')/(L_sym*N_users));
             SINR_dB = -10*log10(evm);
            
         

@@ -63,14 +63,9 @@ for SNR_idx = 1:length(SNR_sweep)
         end
         
         rx_syms = rx_syms(1:L_sym, :);% Neglect zero padded symbols due to fixed N_subcarriers
-        if isequal(params.diff_decoding_dimension,'freq')
-            rx_syms_nm = rx_syms./mean(abs(rx_syms),1); 
-        else
-            rx_syms_nm = rx_syms;
-        end
 
         if N_users == 1
-            det_syms = QPSK_detector(rx_syms_nm); % Min distance QPSK detection 
+            det_syms = QPSK_detector(rx_syms); % Min distance QPSK detection 
             det_bits = QPSK_demodulator(det_syms); % Map symbols to bits
             
             % SER
@@ -79,11 +74,11 @@ for SNR_idx = 1:length(SNR_sweep)
             SER_total = sum(error_sym_flags, 'all')/(L * N_users);
             
             % SINR (from EVM) 
-            evm = sqrt(sum(abs(rx_syms_nm - syms).^2, 'all')/(L_sym*N_users));
+            evm = (sum(abs(rx_syms - syms).^2, 'all')/(L_sym*N_users));
             SINR_dB = -10*log10(evm);
 
         elseif N_users == 2
-            [det_bits, det_joint_syms] = joint_const_detection(rx_syms_nm); % Joint constellation
+            [det_bits, det_joint_syms] = joint_const_detection(rx_syms); % Joint constellation
             % Metrics
             % SER Joint
             error_sym = (transpose(det_joint_syms) - joint_syms);
@@ -92,7 +87,7 @@ for SNR_idx = 1:length(SNR_sweep)
             SER_total = sum(error_sym_flags, 'all')/(length(joint_syms));
     
             % SINR Joint (from EVM) 
-            evm = sqrt(sum(abs(rx_syms_nm - joint_syms).^2, 'all')/(L_sym*N_users));
+            evm = (sum(abs(rx_syms - joint_syms).^2, 'all')/(L_sym*N_users));
             SINR_dB = -10*log10(evm);
 
         else

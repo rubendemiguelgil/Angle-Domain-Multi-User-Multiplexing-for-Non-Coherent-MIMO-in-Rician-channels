@@ -1,6 +1,6 @@
 clear, clc, close all;
 
-folder = "Results\subfolder_name_here\";
+folder = "Results\results_subfolder_name_here\";
 
 load(folder + "params")
 
@@ -11,32 +11,40 @@ NC_SINR_eep = results_nch_eep.SINR_total_mtx;
 load(folder + "results_nch_freq")
 NC_SER_freq  = results_nch_freq.SER_total_mtx;
 NC_SINR_freq = results_nch_freq.SINR_total_mtx;
-
-load(folder + "results_mrc_perf.mat")
-CH_SER_mrc_perf  = results_ch_perfect_mrc.SER_total_mtx;
-CH_SINR_mrc_perf = results_ch_perfect_mrc.SINR_total_mtx;
-
-load(folder + "results_zf_perf.mat")
-CH_SER_zf_perf  = results_ch_perfect_zf.SER_total_mtx;
-CH_SINR_zf_perf = results_ch_perfect_zf.SINR_total_mtx;
-
-load(folder + "results_mmse_perf.mat")
-CH_SER_mmse_perf  = results_ch_perfect_mmse.SER_total_mtx;
-CH_SINR_mmse_perf = results_ch_perfect_mmse.SINR_total_mtx;
-
-load(folder + "results_mrc_imperf.mat")
-CH_SER_mrc_imperf  = results_ch_imperfect_mrc.SER_total_mtx;
-CH_SINR_mrc_imperf = results_ch_imperfect_mrc.SINR_total_mtx;
-
-load(folder + "results_zf_imperf.mat")
-CH_SER_zf_imperf  = results_ch_imperfect_zf.SER_total_mtx;
-CH_SINR_zf_imperf = results_ch_imperfect_zf.SINR_total_mtx;
+% 
+% load(folder + "results_mrc_perf.mat")
+% CH_SER_mrc_perf  = results_ch_perfect_mrc.SER_total_mtx;
+% CH_SINR_mrc_perf = results_ch_perfect_mrc.SINR_total_mtx;
+% 
+% load(folder + "results_zf_perf.mat")
+% CH_SER_zf_perf  = results_ch_perfect_zf.SER_total_mtx;
+% CH_SINR_zf_perf = results_ch_perfect_zf.SINR_total_mtx;
+% 
+% load(folder + "results_mmse_perf.mat")
+% CH_SER_mmse_perf  = results_ch_perfect_mmse.SER_total_mtx;
+% CH_SINR_mmse_perf = results_ch_perfect_mmse.SINR_total_mtx;
+% 
+% load(folder + "results_mrc_imperf.mat")
+% CH_SER_mrc_imperf  = results_ch_imperfect_mrc.SER_total_mtx;
+% CH_SINR_mrc_imperf = results_ch_imperfect_mrc.SINR_total_mtx;
+% 
+% load(folder + "results_zf_imperf.mat")
+% CH_SER_zf_imperf  = results_ch_imperfect_zf.SER_total_mtx;
+% CH_SINR_zf_imperf = results_ch_imperfect_zf.SINR_total_mtx;
 
 load(folder + "results_mmse_imperf.mat")
 CH_SER_mmse_imperf  = results_ch_imperfect_mmse.SER_total_mtx;
 CH_SINR_mmse_imperf = results_ch_imperfect_mmse.SINR_total_mtx;
 
 SNR_sweep = params.SNR_sweep;
+M = params.M;
+K = 10^(params.K/10);
+U = params.N_users;
+W = params.width;
+sigma = sqrt(10.^(-SNR_sweep/10))
+
+SINR_analytical = ((M*K+1)/(1+K))./(((U-1)*(2+K*U)./(1+K)^2)+(((U-1)+ 2*U.*sigma.^2)./(1+K))+sigma.^4);
+SINR_dB_analytical = 10*log10(SINR_analytical)
 
 close all
 figure(1)
@@ -76,14 +84,16 @@ figure(2)
     plot(SNR_sweep, NC_SINR_freq, '-ksquare', 'DisplayName','\textbf{Proposed non-coherent}')
     % plot(SNR_sweep, NC_SINR_leg, '-^', 'DisplayName','\textbf{Non-coherent single user from [7]}')
     plot(SNR_sweep, NC_SINR_eep, '-.x', 'DisplayName','\textbf{Non-coherent EEP from [11]}')
-    legend('Interpreter','latex', 'location','northwest');
+    plot(SNR_sweep, SINR_dB_analytical, '-b+', 'DisplayName','\textbf{Analytical SINR from (18)}')
+    legend('Interpreter','latex', 'location','southeast');
     set(gca,'TickLabelInterpreter','latex')
     set(findall(gcf,'-property','FontSize'),'FontSize',12.5)
     box on;
 
+
     %% Plot antenna scaling
     clear, close all;
-    results_folder = "Results\antenna_scaling/";
+    results_folder = "Results\antenna_scaling_w_25/";
     load(results_folder + "workspace")
 
     SNR_sweep = params.SNR_sweep;
@@ -92,7 +102,7 @@ figure(2)
     hold on, grid on
     xlabel('\textbf{SNR (dB)}','Interpreter','latex');
     ylabel('\textbf{SER}','Interpreter','latex');
-    for i = 1:length(N_ant_array)-1
+    for i = 1:length(N_ant_array)
 
         plot(SNR_sweep, SER_ant_scaling_nch_freq(i,:), '-ksquare')
         % plot(SNR_sweep, SER_ant_scaling_perfect_mmse(i,:), '-.bx')
@@ -121,9 +131,9 @@ figure(2)
     hold on, grid on
     xlabel('SNR (dB)','Interpreter','latex');
     ylabel('SINR (dB)','Interpreter','latex');
-    for i = 1:length(N_ant_array)-1
+    for i = 1:length(N_ant_array)
         plot(SNR_sweep, SINR_ant_scaling_nch_freq(i, :), '-.ksquare')
-        plot(SNR_sweep, SINR_ant_scaling_perfect_mmse(i, :), '-.bx')
+        % plot(SNR_sweep, SINR_ant_scaling_perfect_mmse(i, :), '-.bx')
         plot(SNR_sweep, SINR_ant_scaling_imperfect_mmse(i, :), '-.r^')
     end
     l= legend(legend_nch, legend_mmse, 'Interpreter','latex', 'location','southwest');

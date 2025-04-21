@@ -4,7 +4,7 @@ function [H] = rician_channel(user_angles, N_subcarriers, M, N_taps, K, phase_di
 
 N_users = length(user_angles);
 
-        % With amplitude changes
+    % Rayleigh part (random)
         % Exponentially decaying random PDPs
         decay = 1e-1;
         decrease = exp(-[0:N_taps-1]* decay);
