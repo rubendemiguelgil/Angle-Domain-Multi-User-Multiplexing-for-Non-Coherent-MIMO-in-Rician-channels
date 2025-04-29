@@ -7,7 +7,7 @@ addpath(genpath(folder));
 params = simulation_parameters()
 
 currDate = strrep(datestr(datetime), ':', '_');
-results_dir = ['Results/test'];
+results_dir = ['Results/' currDate];
 mkdir(results_dir)
 save([results_dir '/params'], "params")
 

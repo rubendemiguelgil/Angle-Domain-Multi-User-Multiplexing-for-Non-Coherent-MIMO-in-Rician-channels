@@ -12,13 +12,7 @@ N_users = length(user_angles);
         H_NLOS_pdp= 1/(sqrt(2)) .* decrease_mat .* (randn(M, N_taps, N_users) + 1j*randn(M, N_taps, N_users));
         H_NLOS_freq = fft(H_NLOS_pdp, N_subcarriers, 2);
         H_NLOS_freq_nm = H_NLOS_freq./sqrt(repmat(var(H_NLOS_freq, 1, 1), M, 1, 1));
-        H_NLOS = ifft(H_NLOS_freq, N_subcarriers, 2);
-        
 
-        H_NLOS_rayleigh =  1/(sqrt(2)) .* (randn(M, N_taps, N_users) + 1j*randn(M, N_taps, N_users));
-        H_NLOS_rayleigh_freq =  1/(sqrt(N_subcarriers)) .* fft(H_NLOS_rayleigh, N_subcarriers, 2);
-        H_NLOS_rayleigh_freq_nm = H_NLOS_rayleigh_freq./sqrt(repmat(var(H_NLOS_rayleigh_freq, 1, 1), M, 1, 1));
-        H_NLOS_rayleigh_long =  sqrt(N_subcarriers) .* ifft(H_NLOS_rayleigh_freq, N_subcarriers, 2);
     % Rician part (determininstic)
         init_phases = 2*pi*rand(1,N_users); 
         rx_phases = repmat([0:M-1]', 1, N_users) * phase_dist_ant .* repmat(sin(user_angles), M, 1); % Assumed lambda/2 antenna spacing
@@ -28,7 +22,6 @@ N_users = length(user_angles);
 H_LOS = cat(2, reshape(H_LOS, M, 1, N_users), zeros(M, N_subcarriers-1, N_users)); % Extend H to the length of the OFDM signal (constant channel due to T_ofdm_sym < T_coherence)
 H_LOS_freq = fft(H_LOS, N_subcarriers, 2);
 
-H = sqrt(K/(K+1)) * H_LOS + sqrt(1/(K+1)) * H_NLOS; 
 H_freq = sqrt(K/(K+1)) * H_LOS_freq + sqrt(1/(K+1)) * H_NLOS_freq_nm; 
 
 end

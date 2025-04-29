@@ -61,7 +61,7 @@ y_fft = OFDM_demodulation(y);
 H_hat = H; 
 CH_e_N0 = N0;
 CH_est_errors = sqrt(CH_e_N0/2) * (randn(size(H_hat)) + j*randn(size(H_hat)));
-H_hat_fft = fft(H_hat, N_subcarriers, 2) + CH_est_errors; 
+H_hat_fft = H_hat + CH_est_errors; 
 
 %% MR combining
 W_mrc = conj(H_hat_fft); 
