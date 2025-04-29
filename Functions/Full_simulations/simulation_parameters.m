@@ -22,14 +22,14 @@ function [params] = simulation_parameters()
     assert(length(params.user_pwr) == params.N_users, 'There must be one power per user.')
 
     % Spatial filter
-    params.width = 25;
+    params.width = 5;
 
     % Channel 
     params.K = 10;
     params.N_taps = 32;
     
     % Coherent MIMO
-    params.perfect_channel_estimation = true;
+    params.perfect_channel_estimation = false;
     params.combining_method = 'MMSE'; % Choose between 'MRC', 'ZF' or 'MMSE'
 
     % Non-coherent MIMO

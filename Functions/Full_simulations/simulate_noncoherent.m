@@ -32,12 +32,6 @@ switch params.diff_decoding_dimension
     case 'freq'
         [ofdm_signal] = OFDM_diff_modulation_freq(syms, N_subcarriers);
 end
-%% Rician channel (for now constant)
-H = rician_channel(angles, N_subcarriers, M, N_taps, K, phase_dist);
-
-rx_phases = repmat([0:M-1]', 1, N_users) * phase_dist .* repmat(sin(angles), M, 1);
-[~, user_id]= max(fft(exp(-j*rx_phases), M, 1), [], 1); % Map users for user identification 
-
 
 %% SNR sweep loop
 SNR_sweep = params.SNR_sweep;
@@ -51,15 +45,21 @@ for SNR_idx = 1:length(SNR_sweep)
         SNR_dB = SNR_sweep(SNR_idx);
         N0 = (10.^(-SNR_dB/10)); 
         
-        %% Transmission (se tienen que sumar las señales)
-        y = tx_ofdm_signal(ofdm_signal, H, N0);
+        %% Rician channel
+        H_freq = rician_channel(angles, N_subcarriers, M, N_taps, K, phase_dist);
+        
+        rx_phases = repmat([0:M-1]', 1, N_users) * phase_dist .* repmat(sin(angles), M, 1);
+        [~, user_id]= max(fft(exp(-j*rx_phases), M, 1), [], 1); % Map users for user identification 
+
+        %% Transmission 
+        y = tx_ofdm_signal(ofdm_signal, H_freq, N0);
         
         %% Spatial filtering 
-        [spatial_filter_time, user_mapping] = dft_peaks(y, N_users, width);
-        [spatial_filter_time] = user_identification(spatial_filter_time, user_id, user_mapping);
+        [spatial_filter_angle, user_mapping] = dft_peaks(y, N_users, width);
+        [spatial_filter_angle] = user_identification(spatial_filter_angle, user_id, user_mapping);
 
-        y_filtered_angle =  fft(spatial_filter_time, M, 2) .* fft(y, M, 2);
-        y_filtered = ifft(y_filtered_angle, M, 2);
+        y_filtered_angle = spatial_filter_angle .* 1/sqrt(M) .* fft(y, M, 2);
+        y_filtered = sqrt(M) .* ifft(y_filtered_angle, M, 2);
         
         %% Differential OFDM decoding/demodulation/carrier dealocation
         switch params.diff_decoding_dimension

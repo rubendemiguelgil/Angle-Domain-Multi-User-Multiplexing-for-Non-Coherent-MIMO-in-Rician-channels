@@ -36,8 +36,6 @@ switch params.diff_decoding_dimension
     case 'freq'
         [ofdm_signal] = OFDM_diff_modulation_freq(syms, N_subcarriers);
 end
-%% Rician channel
-H = rician_channel(angles, N_subcarriers, M, N_taps, K, phase_dist);
 
 %% SNR sweep loop
 SNR_sweep = params.SNR_sweep;
@@ -51,8 +49,11 @@ for SNR_idx = 1:length(SNR_sweep)
         SNR_dB = SNR_sweep(SNR_idx);
         N0 = (10.^(-SNR_dB/10)); 
         
+        %% Rician channel
+        H_freq = rician_channel(angles, N_subcarriers, M, N_taps, K, phase_dist);
+
         %% Transmission 
-        y = tx_ofdm_signal(ofdm_signal, H, N0);
+        y = tx_ofdm_signal(ofdm_signal, H_freq, N0);
         
         %% Differential OFDM decoding/demodulation/carrier dealocation
         switch params.diff_decoding_dimension

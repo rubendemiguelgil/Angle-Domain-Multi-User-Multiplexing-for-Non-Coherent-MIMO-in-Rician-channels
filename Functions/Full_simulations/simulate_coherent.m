@@ -27,9 +27,6 @@ syms = syms .* repmat(pwr, L_sym, 1);
 %% OFDM encoding/modulation/carrier alocation
 ofdm_signal = OFDM_modulation(syms, N_subcarriers);
 
-%% Rician channel 
-H = rician_channel(angles, N_subcarriers, M, N_taps, K, phase_dist);
-
 %% SNR sweep loop
 SNR_sweep = params.SNR_sweep;
 SER_total_mtx = zeros(length(SNR_sweep), n_ch_uses);
@@ -42,14 +39,17 @@ for SNR_idx = 1:length(SNR_sweep)
         SNR_dB = SNR_sweep(SNR_idx);
         N0 = (10.^(-SNR_dB/10));
         
+        %% Rician channel 
+        H_freq = rician_channel(angles, N_subcarriers, M, N_taps, K, phase_dist);
+
         %% Transmission 
-        y = tx_ofdm_signal(ofdm_signal, H, N0); 
+        y = tx_ofdm_signal(ofdm_signal, H_freq, N0); 
         
         %% OFDM decoding/demodulation/carrier dealocation
         y_fft = OFDM_demodulation(y);
  
         %% Ch estimation
-        H_hat = H; 
+        H_hat = H_freq; 
         CH_e_N0 = N0;
         if params.perfect_channel_estimation == true
             CH_est_errors = zeros(size(H_hat));
@@ -57,7 +57,7 @@ for SNR_idx = 1:length(SNR_sweep)
             CH_est_errors = sqrt(CH_e_N0/2) * (randn(size(H_hat)) + j*randn(size(H_hat)));
         end
         
-        H_hat_fft = fft(H_hat, N_subcarriers, 2)+ CH_est_errors; 
+        H_hat_fft = H_hat + CH_est_errors; 
         W = conj(H_hat_fft); 
         
         %% MIMO combining
