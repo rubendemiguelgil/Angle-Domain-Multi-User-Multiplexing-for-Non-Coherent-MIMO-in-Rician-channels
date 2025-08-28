@@ -14,7 +14,7 @@ function [params] = simulation_parameters()
 
     % Environment
     params.N_users = 2; 
-    params.M = 64; % Number of Rx antennas (BS)
+    params.M = 50; % Number of Rx antennas (BS)
     params.phase_dist = pi; % Assumed lambda/2 antenna separation
     params.user_angles = [deg2rad(30) deg2rad(-30)];
     params.user_pwr = [1 1];
@@ -22,7 +22,7 @@ function [params] = simulation_parameters()
     assert(length(params.user_pwr) == params.N_users, 'There must be one power per user.')
 
     % Spatial filter
-    params.width = 5;
+    params.width = 10;
 
     % Channel 
     params.K = 10;
