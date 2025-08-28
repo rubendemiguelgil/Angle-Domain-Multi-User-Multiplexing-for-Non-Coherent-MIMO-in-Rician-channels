@@ -9,7 +9,7 @@ SNR_sweep = params.SNR_sweep;
 
 % Environment
 params.N_users = 6; 
-params.M = 64; % Number of Rx antennas (BS)
+params.W = 5;
 params.user_angles = [deg2rad(50) deg2rad(-50) deg2rad(30) deg2rad(-30) deg2rad(10) deg2rad(-10)];
 params.user_pwr = [1 1 1 1 1 1];
 assert(length(params.user_angles) == params.N_users, 'There must be one angle per user.')
