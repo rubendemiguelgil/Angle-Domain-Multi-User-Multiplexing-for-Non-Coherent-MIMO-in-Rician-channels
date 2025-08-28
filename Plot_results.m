@@ -23,7 +23,7 @@ U = params.N_users;
 W = params.width;
 sigma = sqrt(10.^(-SNR_sweep/10));
 
-SINR_analytical = ((M * K + W)/(1+K)) ./ (((2*W/M*(U^2-U) + K*U -K)/(1+K)^2) + ((W*U - W + 2 * sigma.^2 * W/M * U + 2* K * sigma.^2)/(1+K)) + W/M * sigma.^4) ;
+SINR_analytical = ((M * K + W)/(1+K)) ./ (((W/M*(U^2-U) + 2*(K*U -K))/(1+K)^2) + ((W*U - W + 2 * sigma.^2 * W/M * U + 2* K * sigma.^2)/(1+K)) + W/M * sigma.^4);
 SINR_dB_analytical = 10*log10(SINR_analytical);
 
 close all
